@@ -89,6 +89,11 @@ public class InventarioServiceImplTest {
         // Assert
         assertNotNull(resultado);
         assertEquals(50, resultado.getCantidad());
+        
+        assertNotNull(resultado.getTipoMovimiento(), "El tipo de movimiento no debe ser nulo");
+        assertFalse(resultado.getTipoMovimiento().isEmpty(), "El tipo de movimiento no debe estar vacío");
+        assertTrue(resultado.getCantidad() > 0, "La cantidad de movimiento debe ser mayor a cero");
+
         verify(inventarioRepository, times(1)).save(inventarioMock);
     }
 
