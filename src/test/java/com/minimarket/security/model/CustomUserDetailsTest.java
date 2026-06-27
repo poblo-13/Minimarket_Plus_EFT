@@ -47,6 +47,17 @@ public class CustomUserDetailsTest {
     }
 
     @Test
+    public void testGetAuthorities_NormalizaRolSinPrefijo() {
+        Rol rolCajero = new Rol();
+        rolCajero.setNombre("CAJERO");
+        usuario.setRoles(Set.of(rolCajero));
+
+        Collection<? extends GrantedAuthority> authorities = new CustomUserDetails(usuario).getAuthorities();
+
+        assertEquals("ROLE_CAJERO", authorities.iterator().next().getAuthority());
+    }
+
+    @Test
     public void testGetUsernameAndPassword() {
         // Validamos que entregue las credenciales correctas
         assertEquals("goleador_admin", customUserDetails.getUsername());

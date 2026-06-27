@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.DetalleVenta;
 import com.minimarket.service.DetalleVentaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,12 @@ public class DetalleVentaController {
     }
 
     @PostMapping
-    public DetalleVenta guardarDetalleVenta(@RequestBody DetalleVenta detalleVenta) {
+    public DetalleVenta guardarDetalleVenta(@Valid @RequestBody DetalleVenta detalleVenta) {
         return detalleVentaService.save(detalleVenta);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DetalleVenta> actualizarDetalleVenta(@PathVariable Long id, @RequestBody DetalleVenta detalleVenta) {
+    public ResponseEntity<DetalleVenta> actualizarDetalleVenta(@PathVariable Long id, @Valid @RequestBody DetalleVenta detalleVenta) {
         DetalleVenta existente = detalleVentaService.findById(id);
         if (existente != null) {
             detalleVenta.setId(id);

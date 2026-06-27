@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Carrito;
 import com.minimarket.service.CarritoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,12 @@ public class CarritoController {
     }
 
     @PostMapping
-    public Carrito agregarProductoAlCarrito(@RequestBody Carrito carrito) {
+    public Carrito agregarProductoAlCarrito(@Valid @RequestBody Carrito carrito) {
         return carritoService.save(carrito);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Carrito> actualizarCarrito(@PathVariable Long id, @RequestBody Carrito carrito) {
+    public ResponseEntity<Carrito> actualizarCarrito(@PathVariable Long id, @Valid @RequestBody Carrito carrito) {
         Carrito existente = carritoService.findById(id);
         if (existente != null) {
             carrito.setId(id);

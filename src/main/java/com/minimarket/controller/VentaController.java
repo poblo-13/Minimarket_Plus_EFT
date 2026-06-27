@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Venta;
 import com.minimarket.service.VentaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,10 +29,10 @@ public class VentaController {
         return (venta != null) ? ResponseEntity.ok(venta) : ResponseEntity.notFound().build();
     }
 
-    // Candado: Solo los Cajeros pueden procesar y generar nuevas ventas
+    // Candado: Cajeros y Administradores pueden procesar y generar nuevas ventas
     @PostMapping
-    @PreAuthorize("hasRole('CAJERO')")
-    public Venta guardarVenta(@RequestBody Venta venta) {
+    @PreAuthorize("hasAnyRole('CAJERO', 'ADMIN')")
+    public Venta guardarVenta(@Valid @RequestBody Venta venta) {
         return ventaService.save(venta);
     }
 }

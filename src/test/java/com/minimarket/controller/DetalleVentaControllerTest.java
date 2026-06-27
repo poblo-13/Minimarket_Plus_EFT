@@ -1,6 +1,7 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.DetalleVenta;
+import com.minimarket.entity.Producto;
 import com.minimarket.service.DetalleVentaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,12 @@ public class DetalleVentaControllerTest {
         detalleVentaMock.setId(5L);
         detalleVentaMock.setCantidad(3);
         detalleVentaMock.setPrecio(1500.0);
+        Producto producto = new Producto();
+        producto.setId(1L);
+        producto.setNombre("Galletas");
+        producto.setPrecio(1500.0);
+        producto.setStock(20);
+        detalleVentaMock.setProducto(producto);
     }
 
     @Test

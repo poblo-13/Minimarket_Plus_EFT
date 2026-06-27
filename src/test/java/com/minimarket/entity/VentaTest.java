@@ -3,7 +3,7 @@ package com.minimarket.entity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -11,7 +11,7 @@ public class VentaTest {
 
     private Venta venta;
     private Usuario usuarioMock;
-    private Date fechaPrueba;
+    private LocalDateTime fechaPrueba;
     private List<DetalleVenta> detallesMock;
 
     @BeforeEach
@@ -25,11 +25,13 @@ public class VentaTest {
         usuarioMock.setUsername("cliente_estrella");
 
         // Fijamos una fecha exacta
-        fechaPrueba = new Date();
+        fechaPrueba = LocalDateTime.now();
 
         // Creamos una lista simulada con un detalle de venta
         DetalleVenta detalle = new DetalleVenta();
         detalle.setId(5L);
+        detalle.setCantidad(3);
+        detalle.setPrecio(333.335);
         detallesMock = new ArrayList<>();
         detallesMock.add(detalle);
     }
@@ -54,5 +56,18 @@ public class VentaTest {
         assertNotNull(venta.getDetalles(), "La lista de detalles no debe ser nula");
         assertEquals(1, venta.getDetalles().size(), "La lista debe contener 1 detalle de venta");
         assertEquals(5L, venta.getDetalles().get(0).getId(), "El ID del detalle en la lista debe ser 5L");
+    }
+
+    @Test
+    public void testCalcularTotal_RedondeaDosDecimales() {
+        DetalleVenta detalle1 = new DetalleVenta();
+        detalle1.setPrecio(10.005);
+        detalle1.setCantidad(2);
+        DetalleVenta detalle2 = new DetalleVenta();
+        detalle2.setPrecio(5.333);
+        detalle2.setCantidad(3);
+        venta.setDetalles(List.of(detalle1, detalle2));
+
+        assertEquals(36.01, venta.calcularTotal(), 0.001);
     }
 }

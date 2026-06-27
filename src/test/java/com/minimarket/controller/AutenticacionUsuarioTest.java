@@ -12,10 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -33,10 +33,9 @@ public class AutenticacionUsuarioTest {
 
     @Test
     public void testLogin_CredencialesInvalidas_DebeSerRechazado() throws Exception {
-        mockMvc.perform(formLogin().user("hacker").password("claveFalsa123"))
+        mockMvc.perform(get("/api/productos").with(httpBasic("hacker", "claveFalsa123")))
                 .andExpect(unauthenticated())
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?error")); 
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -48,7 +47,8 @@ public class AutenticacionUsuarioTest {
                 
         when(customUserDetailsService.loadUserByUsername("admin")).thenReturn(mockUser);
 
-        mockMvc.perform(formLogin().user("admin").password("claveSegura123"))
+        mockMvc.perform(get("/api/productos").with(httpBasic("admin", "claveSegura123")))
+                .andExpect(status().isOk())
                 .andExpect(authenticated());
     }
 }

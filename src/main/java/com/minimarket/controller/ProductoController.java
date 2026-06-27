@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Producto;
 import com.minimarket.service.ProductoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,14 +32,14 @@ public class ProductoController {
     // Candado: Solo Administradores pueden crear
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Producto guardarProducto(@RequestBody Producto producto) {
+    public Producto guardarProducto(@Valid @RequestBody Producto producto) {
         return productoService.save(producto);
     }
 
     // Candado: Solo Administradores pueden actualizar
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
+    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @Valid @RequestBody Producto producto) {
         Producto productoExistente = productoService.findById(id);
         if (productoExistente != null) {
             producto.setId(id);

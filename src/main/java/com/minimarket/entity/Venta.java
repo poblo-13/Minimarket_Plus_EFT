@@ -1,7 +1,12 @@
 package com.minimarket.entity;
 
 import jakarta.persistence.*;
-import java.util.Date;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -12,13 +17,28 @@ public class Venta {
 
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
+    @NotNull(message = "El usuario es obligatorio")
     private Usuario usuario;
 
     @Column(nullable = false)
-    private Date fecha;
+    @NotNull(message = "La fecha es obligatoria")
+    private LocalDateTime fecha;
 
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL)
+    @NotEmpty(message = "La venta debe tener al menos un detalle")
+    @Valid
     private List<DetalleVenta> detalles;
+
+    public Double calcularTotal() {
+        if (detalles == null || detalles.isEmpty()) {
+            return 0.0;
+        }
+        BigDecimal total = detalles.stream()
+                .filter(detalle -> detalle.getPrecio() != null && detalle.getCantidad() != null)
+                .map(detalle -> BigDecimal.valueOf(detalle.getPrecio()).multiply(BigDecimal.valueOf(detalle.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return total.setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
 
     // Getters y Setters
     public Long getId() {
@@ -37,11 +57,11 @@ public class Venta {
         this.usuario = usuario;
     }
 
-    public Date getFecha() {
+    public LocalDateTime getFecha() {
         return fecha;
     }
 
-    public void setFecha(Date fecha) {
+    public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
     }
 

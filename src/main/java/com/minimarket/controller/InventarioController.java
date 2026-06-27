@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Inventario;
 import com.minimarket.service.InventarioService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,14 +32,14 @@ public class InventarioController {
     // Candado: Solo Administradores pueden registrar entradas o salidas
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Inventario registrarMovimiento(@RequestBody Inventario inventario) {
+    public Inventario registrarMovimiento(@Valid @RequestBody Inventario inventario) {
         return inventarioService.save(inventario);
     }
 
     // Candado: Solo Administradores pueden modificar un registro de inventario
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Inventario> actualizarMovimiento(@PathVariable Long id, @RequestBody Inventario inventario) {
+    public ResponseEntity<Inventario> actualizarMovimiento(@PathVariable Long id, @Valid @RequestBody Inventario inventario) {
         Inventario existente = inventarioService.findById(id);
         if (existente != null) {
             inventario.setId(id);

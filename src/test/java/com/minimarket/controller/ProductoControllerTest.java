@@ -1,6 +1,7 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.Producto;
+import com.minimarket.entity.Categoria;
 import com.minimarket.service.ProductoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,10 @@ public class ProductoControllerTest {
         productoMock.setNombre("Galletas");
         productoMock.setPrecio(1200.0);
         productoMock.setStock(20);
+        Categoria categoria = new Categoria();
+        categoria.setId(1L);
+        categoria.setNombre("Abarrotes");
+        productoMock.setCategoria(categoria);
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.minimarket.service.impl;
 
 import com.minimarket.entity.Inventario;
+import com.minimarket.entity.Producto;
 import com.minimarket.repository.InventarioRepository;
+import com.minimarket.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +24,9 @@ public class InventarioServiceImplTest {
     @Mock
     private InventarioRepository inventarioRepository;
 
+    @Mock
+    private ProductoRepository productoRepository;
+
     @InjectMocks
     private InventarioServiceImpl inventarioService;
 
@@ -34,6 +39,10 @@ public class InventarioServiceImplTest {
         inventarioMock.setId(15L);
         inventarioMock.setCantidad(50);
         inventarioMock.setTipoMovimiento("Entrada");
+        Producto producto = new Producto();
+        producto.setId(2L);
+        producto.setStock(100);
+        inventarioMock.setProducto(producto);
     }
 
     @Test
@@ -95,6 +104,37 @@ public class InventarioServiceImplTest {
         assertTrue(resultado.getCantidad() > 0, "La cantidad de movimiento debe ser mayor a cero");
 
         verify(inventarioRepository, times(1)).save(inventarioMock);
+        verify(productoRepository, times(1)).save(inventarioMock.getProducto());
+    }
+
+    @Test
+    public void testSaveEntrada_SumaStock() {
+        when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventarioMock);
+
+        inventarioService.save(inventarioMock);
+
+        assertEquals(150, inventarioMock.getProducto().getStock());
+        verify(productoRepository).save(inventarioMock.getProducto());
+    }
+
+    @Test
+    public void testSaveSalida_RestaStock() {
+        inventarioMock.setTipoMovimiento("Salida");
+        inventarioMock.setCantidad(30);
+        when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventarioMock);
+
+        inventarioService.save(inventarioMock);
+
+        assertEquals(70, inventarioMock.getProducto().getStock());
+    }
+
+    @Test
+    public void testSaveSalida_StockInsuficiente() {
+        inventarioMock.setTipoMovimiento("Salida");
+        inventarioMock.setCantidad(200);
+
+        assertThrows(IllegalArgumentException.class, () -> inventarioService.save(inventarioMock));
+        verify(inventarioRepository, never()).save(any(Inventario.class));
     }
 
     @Test

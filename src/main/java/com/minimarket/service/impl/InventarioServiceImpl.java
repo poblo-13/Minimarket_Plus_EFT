@@ -2,6 +2,7 @@ package com.minimarket.service.impl;
 
 import com.minimarket.entity.Inventario;
 import com.minimarket.repository.InventarioRepository;
+import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.InventarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import java.util.List;
 public class InventarioServiceImpl implements InventarioService {
 
     private final InventarioRepository inventarioRepository;
+    private final ProductoRepository productoRepository;
 
     @Override
     public List<Inventario> findAll() {
@@ -26,6 +28,22 @@ public class InventarioServiceImpl implements InventarioService {
 
     @Override
     public Inventario save(Inventario inventario) {
+        var producto = inventario.getProducto();
+        if (producto == null) {
+            throw new IllegalArgumentException("El producto es obligatorio para registrar inventario");
+        }
+        int stockActual = producto.getStock() == null ? 0 : producto.getStock();
+        int cantidad = inventario.getCantidad() == null ? 0 : inventario.getCantidad();
+
+        if ("Entrada".equalsIgnoreCase(inventario.getTipoMovimiento())) {
+            producto.setStock(stockActual + cantidad);
+        } else if ("Salida".equalsIgnoreCase(inventario.getTipoMovimiento())) {
+            if (stockActual < cantidad) {
+                throw new IllegalArgumentException("Stock insuficiente para registrar la salida");
+            }
+            producto.setStock(stockActual - cantidad);
+        }
+        productoRepository.save(producto);
         return inventarioRepository.save(inventario);
     }
 

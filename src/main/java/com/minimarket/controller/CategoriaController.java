@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Categoria;
 import com.minimarket.service.CategoriaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,12 @@ public class CategoriaController {
     }
 
     @PostMapping
-    public Categoria guardarCategoria(@RequestBody Categoria categoria) {
+    public Categoria guardarCategoria(@Valid @RequestBody Categoria categoria) {
         return categoriaService.save(categoria);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Categoria> actualizarCategoria(@PathVariable Long id, @RequestBody Categoria categoria) {
+    public ResponseEntity<Categoria> actualizarCategoria(@PathVariable Long id, @Valid @RequestBody Categoria categoria) {
         Categoria categoriaExistente = categoriaService.findById(id);
         if (categoriaExistente != null) {
             categoria.setId(id);

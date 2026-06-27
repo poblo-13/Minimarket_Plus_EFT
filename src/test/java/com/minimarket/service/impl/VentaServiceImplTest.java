@@ -10,7 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,12 +27,12 @@ public class VentaServiceImplTest {
     private VentaServiceImpl ventaService;
 
     private Venta ventaMock;
-    private Date fechaPrueba;
+    private LocalDateTime fechaPrueba;
 
     @BeforeEach
     public void setUp() {
         // Preparamos la venta simulada
-        fechaPrueba = new Date();
+        fechaPrueba = LocalDateTime.now();
         ventaMock = new Venta();
         ventaMock.setId(100L);
         ventaMock.setFecha(fechaPrueba);

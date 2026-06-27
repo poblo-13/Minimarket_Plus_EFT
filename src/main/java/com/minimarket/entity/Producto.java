@@ -1,6 +1,10 @@
 package com.minimarket.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 public class Producto {
@@ -9,16 +13,22 @@ public class Producto {
     private Long id;
 
     @Column(nullable = false)
+    @NotBlank(message = "El nombre del producto es obligatorio")
     private String nombre;
 
     @Column(nullable = false)
+    @NotNull(message = "El precio es obligatorio")
+    @DecimalMin(value = "0.01", message = "El precio debe ser mayor a 0")
     private Double precio;
 
     @Column(nullable = false)
+    @NotNull(message = "El stock es obligatorio")
+    @Min(value = 0, message = "El stock no puede ser negativo")
     private Integer stock;
 
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)
+    @NotNull(message = "La categoria es obligatoria")
     private Categoria categoria;
 
     // Getters y Setters

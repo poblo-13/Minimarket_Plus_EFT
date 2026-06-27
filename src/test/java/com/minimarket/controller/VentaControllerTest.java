@@ -1,6 +1,9 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.Venta;
+import com.minimarket.entity.DetalleVenta;
+import com.minimarket.entity.Producto;
+import com.minimarket.entity.Usuario;
 import com.minimarket.service.VentaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
-import java.util.Date;
+import java.util.List;
+import java.time.LocalDateTime;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -37,11 +41,26 @@ public class VentaControllerTest {
     @BeforeEach
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(ventaController).build();
-        objectMapper = new ObjectMapper();
+        objectMapper = new ObjectMapper().findAndRegisterModules();
 
         ventaMock = new Venta();
         ventaMock.setId(100L);
-        ventaMock.setFecha(new Date());
+        ventaMock.setFecha(LocalDateTime.now());
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        usuario.setUsername("cliente");
+        usuario.setPassword("demo");
+        ventaMock.setUsuario(usuario);
+        Producto producto = new Producto();
+        producto.setId(1L);
+        producto.setNombre("Galletas");
+        producto.setPrecio(1500.0);
+        producto.setStock(20);
+        DetalleVenta detalle = new DetalleVenta();
+        detalle.setProducto(producto);
+        detalle.setCantidad(2);
+        detalle.setPrecio(1500.0);
+        ventaMock.setDetalles(List.of(detalle));
     }
 
     @Test

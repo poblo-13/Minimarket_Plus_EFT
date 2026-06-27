@@ -19,7 +19,10 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return usuario.getRoles().stream()
-                .map(rol -> new SimpleGrantedAuthority(rol.getNombre()))
+                .map(rol -> rol.getNombre() == null ? "" : rol.getNombre().trim())
+                .filter(nombre -> !nombre.isBlank())
+                .map(nombre -> nombre.startsWith("ROLE_") ? nombre : "ROLE_" + nombre)
+                .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }
 

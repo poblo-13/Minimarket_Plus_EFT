@@ -1,6 +1,7 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.Inventario;
+import com.minimarket.entity.Producto;
 import com.minimarket.service.InventarioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
+import java.time.LocalDateTime;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -36,12 +38,19 @@ public class InventarioControllerTest {
     @BeforeEach
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(inventarioController).build();
-        objectMapper = new ObjectMapper();
+        objectMapper = new ObjectMapper().findAndRegisterModules();
 
         inventarioMock = new Inventario();
         inventarioMock.setId(15L);
         inventarioMock.setCantidad(50);
         inventarioMock.setTipoMovimiento("Entrada");
+        inventarioMock.setFechaMovimiento(LocalDateTime.now());
+        Producto producto = new Producto();
+        producto.setId(1L);
+        producto.setNombre("Galletas");
+        producto.setPrecio(1200.0);
+        producto.setStock(20);
+        inventarioMock.setProducto(producto);
     }
 
     @Test
