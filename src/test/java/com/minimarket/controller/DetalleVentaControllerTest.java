@@ -3,6 +3,8 @@ package com.minimarket.controller;
 import com.minimarket.entity.DetalleVenta;
 import com.minimarket.entity.Producto;
 import com.minimarket.service.DetalleVentaService;
+import com.minimarket.repository.ProductoRepository;
+import com.minimarket.repository.VentaRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,8 @@ public class DetalleVentaControllerTest {
 
     @Mock
     private DetalleVentaService detalleVentaService;
+    @Mock private ProductoRepository productoRepository;
+    @Mock private VentaRepository ventaRepository;
 
     @InjectMocks
     private DetalleVentaController detalleVentaController;
@@ -59,8 +63,7 @@ public class DetalleVentaControllerTest {
         // Simulamos GET
         mockMvc.perform(get("/api/detalle-ventas"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(5L))
-                .andExpect(jsonPath("$[0].precio").value(1500.0));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -85,25 +88,34 @@ public class DetalleVentaControllerTest {
 
     @Test
     public void testGuardarDetalleVenta() throws Exception {
+        com.minimarket.entity.Venta venta = new com.minimarket.entity.Venta(); venta.setId(1L);
+        detalleVentaMock.setVenta(venta);
+        when(ventaRepository.findById(1L)).thenReturn(java.util.Optional.of(venta));
+        when(productoRepository.findById(1L)).thenReturn(java.util.Optional.of(detalleVentaMock.getProducto()));
         when(detalleVentaService.save(any(DetalleVenta.class))).thenReturn(detalleVentaMock);
 
         // Simulamos POST
         mockMvc.perform(post("/api/detalle-ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(detalleVentaMock)))
-                .andExpect(status().isOk())
+                .content("{\"ventaId\":1,\"productoId\":1,\"cantidad\":3,\"precio\":1500.0}"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/detalle-ventas/5"))
                 .andExpect(jsonPath("$.id").value(5L));
     }
 
     @Test
     public void testActualizarDetalleVenta_Encontrado() throws Exception {
         when(detalleVentaService.findById(5L)).thenReturn(detalleVentaMock);
+        com.minimarket.entity.Venta venta = new com.minimarket.entity.Venta(); venta.setId(1L);
+        detalleVentaMock.setVenta(venta);
+        when(ventaRepository.findById(1L)).thenReturn(java.util.Optional.of(venta));
+        when(productoRepository.findById(1L)).thenReturn(java.util.Optional.of(detalleVentaMock.getProducto()));
         when(detalleVentaService.save(any(DetalleVenta.class))).thenReturn(detalleVentaMock);
 
         // Simulamos PUT
         mockMvc.perform(put("/api/detalle-ventas/5")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(detalleVentaMock)))
+                .content("{\"ventaId\":1,\"productoId\":1,\"cantidad\":3,\"precio\":1500.0}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5L));
     }
@@ -115,7 +127,7 @@ public class DetalleVentaControllerTest {
         // Simulamos PUT a ID inexistente
         mockMvc.perform(put("/api/detalle-ventas/99")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(detalleVentaMock)))
+                .content("{\"ventaId\":1,\"productoId\":1,\"cantidad\":3,\"precio\":1500.0}"))
                 .andExpect(status().isNotFound());
     }
 

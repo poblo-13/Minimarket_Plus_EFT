@@ -1,7 +1,12 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.Carrito;
+import com.minimarket.entity.Producto;
+import com.minimarket.entity.Usuario;
 import com.minimarket.service.CarritoService;
+import com.minimarket.service.ProductoService;
+import com.minimarket.service.UsuarioService;
+import com.minimarket.exception.ApiExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +31,8 @@ public class CarritoControllerTest {
 
     @Mock
     private CarritoService carritoService;
+    @Mock private ProductoService productoService;
+    @Mock private UsuarioService usuarioService;
 
     @InjectMocks
     private CarritoController carritoController;
@@ -36,12 +43,14 @@ public class CarritoControllerTest {
     @BeforeEach
     public void setUp() {
         // Configuramos el simulador de peticiones web
-        mockMvc = MockMvcBuilders.standaloneSetup(carritoController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(carritoController).setControllerAdvice(new ApiExceptionHandler()).build();
         objectMapper = new ObjectMapper(); // Para convertir objetos a JSON
 
         carritoMock = new Carrito();
         carritoMock.setId(10L);
         carritoMock.setCantidad(2);
+        Producto producto = new Producto(); producto.setId(1L); carritoMock.setProducto(producto);
+        Usuario usuario = new Usuario(); usuario.setId(1L); carritoMock.setUsuario(usuario);
     }
 
     @Test
@@ -51,7 +60,7 @@ public class CarritoControllerTest {
         // Simulamos un GET a /api/carrito
         mockMvc.perform(get("/api/carrito"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(10L));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -74,25 +83,30 @@ public class CarritoControllerTest {
 
     @Test
     public void testAgregarProductoAlCarrito() throws Exception {
+        when(usuarioService.findById(1L)).thenReturn(java.util.Optional.of(carritoMock.getUsuario()));
+        when(productoService.findById(1L)).thenReturn(carritoMock.getProducto());
         when(carritoService.save(any(Carrito.class))).thenReturn(carritoMock);
 
         // Simulamos un POST con un JSON en el cuerpo (Body)
         mockMvc.perform(post("/api/carrito")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(carritoMock)))
-                .andExpect(status().isOk())
+                .content("{\"usuarioId\":1,\"productoId\":1,\"cantidad\":2}"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/carrito/10"))
                 .andExpect(jsonPath("$.id").value(10L));
     }
 
     @Test
     public void testActualizarCarrito_Encontrado() throws Exception {
         when(carritoService.findById(10L)).thenReturn(carritoMock);
+        when(usuarioService.findById(1L)).thenReturn(java.util.Optional.of(carritoMock.getUsuario()));
+        when(productoService.findById(1L)).thenReturn(carritoMock.getProducto());
         when(carritoService.save(any(Carrito.class))).thenReturn(carritoMock);
 
         // Simulamos un PUT
         mockMvc.perform(put("/api/carrito/10")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(carritoMock)))
+                .content("{\"usuarioId\":1,\"productoId\":1,\"cantidad\":2}"))
                 .andExpect(status().isOk());
     }
 
@@ -102,7 +116,7 @@ public class CarritoControllerTest {
 
         mockMvc.perform(put("/api/carrito/99")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(carritoMock)))
+                .content("{\"usuarioId\":1,\"productoId\":1,\"cantidad\":2}"))
                 .andExpect(status().isNotFound());
     }
 

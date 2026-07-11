@@ -3,6 +3,8 @@ package com.minimarket.controller;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Categoria;
 import com.minimarket.service.ProductoService;
+import com.minimarket.service.CategoriaService;
+import com.minimarket.exception.ApiExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,7 @@ public class ProductoControllerTest {
 
     @Mock
     private ProductoService productoService;
+    @Mock private CategoriaService categoriaService;
 
     @InjectMocks
     private ProductoController productoController;
@@ -36,7 +39,7 @@ public class ProductoControllerTest {
 
     @BeforeEach
     public void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(productoController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(productoController).setControllerAdvice(new ApiExceptionHandler()).build();
         objectMapper = new ObjectMapper();
 
         productoMock = new Producto();
@@ -56,8 +59,7 @@ public class ProductoControllerTest {
 
         mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].nombre").value("Galletas"));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -80,23 +82,26 @@ public class ProductoControllerTest {
 
     @Test
     public void testGuardarProducto() throws Exception {
+        when(categoriaService.findById(1L)).thenReturn(productoMock.getCategoria());
         when(productoService.save(any(Producto.class))).thenReturn(productoMock);
 
         mockMvc.perform(post("/api/productos")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productoMock)))
-                .andExpect(status().isOk())
+                .content("{\"nombre\":\"Galletas\",\"precio\":1200.0,\"stock\":20,\"categoriaId\":1}"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/productos/1"))
                 .andExpect(jsonPath("$.id").value(1L));
     }
 
     @Test
     public void testActualizarProducto_Encontrado() throws Exception {
         when(productoService.findById(1L)).thenReturn(productoMock);
+        when(categoriaService.findById(1L)).thenReturn(productoMock.getCategoria());
         when(productoService.save(any(Producto.class))).thenReturn(productoMock);
 
         mockMvc.perform(put("/api/productos/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productoMock)))
+                .content("{\"nombre\":\"Galletas\",\"precio\":1200.0,\"stock\":20,\"categoriaId\":1}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
@@ -107,7 +112,7 @@ public class ProductoControllerTest {
 
         mockMvc.perform(put("/api/productos/99")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productoMock)))
+                .content("{\"nombre\":\"Galletas\",\"precio\":1200.0,\"stock\":20,\"categoriaId\":1}"))
                 .andExpect(status().isNotFound());
     }
 

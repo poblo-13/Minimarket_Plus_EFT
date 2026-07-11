@@ -12,11 +12,19 @@ import com.minimarket.security.service.CustomUserDetailsService;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
 import com.minimarket.service.VentaService;
+import com.minimarket.service.CategoriaService;
+import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.security.handler.ProblemAccessDeniedHandler;
+import com.minimarket.security.handler.ProblemAuthenticationEntryPoint;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.ComponentScan.Filter;
+import org.springframework.context.annotation.FilterType;
+import com.minimarket.exception.ApiExceptionHandler;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,8 +38,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({ProductoController.class, InventarioController.class, VentaController.class})
-@Import(SecurityConfig.class)
+@WebMvcTest(value = {ProductoController.class, InventarioController.class, VentaController.class},
+        excludeFilters = @Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ApiExceptionHandler.class))
+@Import({SecurityConfig.class, ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
 public class SeguridadAccesosTest {
 
     @Autowired
@@ -45,12 +54,24 @@ public class SeguridadAccesosTest {
 
     @MockBean
     private VentaService ventaService;
+    @MockBean private CategoriaService categoriaService;
+    @MockBean private UsuarioRepository usuarioRepository;
 
     @MockBean
     private CustomUserDetailsService customUserDetailsService; 
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void relatedResourcesExist() {
+        Categoria categoria = new Categoria(); categoria.setId(1L); categoria.setNombre("Abarrotes");
+        Producto producto = productoValido(); producto.setId(1L);
+        Usuario usuario = usuarioValido();
+        when(categoriaService.findById(1L)).thenReturn(categoria);
+        when(productoService.findById(1L)).thenReturn(producto);
+        when(usuarioRepository.findById(1L)).thenReturn(java.util.Optional.of(usuario));
+    }
 
     @Test
     public void testSeguridad_SinCredencialesGetProductos_DebeDar401() throws Exception {
@@ -73,7 +94,7 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/productos")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(producto)))
+                .content(productoRequestJson()))
                 .andExpect(status().isForbidden()); 
     }
 
@@ -85,8 +106,8 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/productos")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(producto)))
-                .andExpect(status().isOk());
+                .content(productoRequestJson()))
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -101,7 +122,7 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/inventario")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(inventario)))
+                .content(inventarioRequestJson()))
                 .andExpect(status().isForbidden());
     }
 
@@ -117,8 +138,8 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/inventario")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(inventario)))
-                .andExpect(status().isOk());
+                .content(inventarioRequestJson()))
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -132,7 +153,7 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(venta)))
+                .content(ventaRequestJson()))
                 .andExpect(status().isForbidden());
     }
 
@@ -144,8 +165,8 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(venta)))
-                .andExpect(status().isOk());
+                .content(ventaRequestJson()))
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -156,8 +177,8 @@ public class SeguridadAccesosTest {
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(venta)))
-                .andExpect(status().isOk());
+                .content(ventaRequestJson()))
+                .andExpect(status().isCreated());
     }
 
     private Producto productoValido() {
@@ -165,6 +186,7 @@ public class SeguridadAccesosTest {
         categoria.setId(1L);
         categoria.setNombre("Abarrotes");
         Producto producto = new Producto();
+        producto.setId(1L);
         producto.setNombre("Galletas");
         producto.setPrecio(990.0);
         producto.setStock(20);
@@ -190,9 +212,14 @@ public class SeguridadAccesosTest {
 
     private Venta ventaValida() {
         Venta venta = new Venta();
+        venta.setId(100L);
         venta.setFecha(LocalDateTime.now());
         venta.setUsuario(usuarioValido());
         venta.setDetalles(List.of(detalleValido()));
         return venta;
     }
+
+    private String productoRequestJson() { return "{\"nombre\":\"Galletas\",\"precio\":990.0,\"stock\":20,\"categoriaId\":1}"; }
+    private String inventarioRequestJson() { return "{\"productoId\":1,\"cantidad\":10,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"; }
+    private String ventaRequestJson() { return "{\"usuarioId\":1,\"fecha\":\"2025-01-01T10:00:00\"}"; }
 }
