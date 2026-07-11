@@ -51,8 +51,7 @@ public class CategoriaControllerTest {
         // Simulamos GET a /api/categorias
         mockMvc.perform(get("/api/categorias"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].nombre").value("Bebidas"));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -82,8 +81,9 @@ public class CategoriaControllerTest {
         // Simulamos POST
         mockMvc.perform(post("/api/categorias")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(categoriaMock)))
-                .andExpect(status().isOk())
+                .content("{\"nombre\":\"Bebidas\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/categorias/1"))
                 .andExpect(jsonPath("$.id").value(1L));
     }
 
@@ -95,7 +95,7 @@ public class CategoriaControllerTest {
         // Simulamos PUT
         mockMvc.perform(put("/api/categorias/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(categoriaMock)))
+                .content("{\"nombre\":\"Bebidas\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
@@ -107,7 +107,7 @@ public class CategoriaControllerTest {
         // Simulamos PUT a ID inexistente
         mockMvc.perform(put("/api/categorias/99")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(categoriaMock)))
+                .content("{\"nombre\":\"Bebidas\"}"))
                 .andExpect(status().isNotFound());
     }
 

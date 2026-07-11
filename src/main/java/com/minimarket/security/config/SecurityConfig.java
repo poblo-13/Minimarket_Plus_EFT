@@ -1,5 +1,7 @@
 package com.minimarket.security.config;
 
+import com.minimarket.security.handler.ProblemAccessDeniedHandler;
+import com.minimarket.security.handler.ProblemAuthenticationEntryPoint;
 import com.minimarket.security.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,9 +21,15 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
+    private final ProblemAuthenticationEntryPoint problemAuthenticationEntryPoint;
+    private final ProblemAccessDeniedHandler problemAccessDeniedHandler;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService) {
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
+                          ProblemAuthenticationEntryPoint problemAuthenticationEntryPoint,
+                          ProblemAccessDeniedHandler problemAccessDeniedHandler) {
         this.customUserDetailsService = customUserDetailsService;
+        this.problemAuthenticationEntryPoint = problemAuthenticationEntryPoint;
+        this.problemAccessDeniedHandler = problemAccessDeniedHandler;
     }
 
     @Bean
@@ -31,9 +39,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .httpBasic(httpBasic -> {})
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(problemAuthenticationEntryPoint)
+                        .accessDeniedHandler(problemAccessDeniedHandler))
+                .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(problemAuthenticationEntryPoint))
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.disable());
         return http.build();

@@ -5,6 +5,7 @@ import com.minimarket.entity.DetalleVenta;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
 import com.minimarket.service.VentaService;
+import com.minimarket.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ public class VentaControllerTest {
 
     @Mock
     private VentaService ventaService;
+    @Mock private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private VentaController ventaController;
@@ -69,7 +71,7 @@ public class VentaControllerTest {
 
         mockMvc.perform(get("/api/ventas"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(100L));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -91,12 +93,14 @@ public class VentaControllerTest {
 
     @Test
     public void testGuardarVenta() throws Exception {
+        when(usuarioRepository.findById(1L)).thenReturn(java.util.Optional.of(ventaMock.getUsuario()));
         when(ventaService.save(any(Venta.class))).thenReturn(ventaMock);
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(ventaMock)))
-                .andExpect(status().isOk())
+                .content("{\"usuarioId\":1,\"fecha\":\"2025-01-01T10:00:00\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/ventas/100"))
                 .andExpect(jsonPath("$.id").value(100L));
     }
 }

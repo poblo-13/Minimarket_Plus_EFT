@@ -1,6 +1,7 @@
 package com.minimarket.security.model;
 
 import com.minimarket.entity.Usuario;
+import com.minimarket.security.SecurityRoles;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +22,9 @@ public class CustomUserDetails implements UserDetails {
         return usuario.getRoles().stream()
                 .map(rol -> rol.getNombre() == null ? "" : rol.getNombre().trim())
                 .filter(nombre -> !nombre.isBlank())
-                .map(nombre -> nombre.startsWith("ROLE_") ? nombre : "ROLE_" + nombre)
+                .map(nombre -> nombre.startsWith(SecurityRoles.AUTHORITY_PREFIX)
+                        ? nombre
+                        : SecurityRoles.AUTHORITY_PREFIX + nombre)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }

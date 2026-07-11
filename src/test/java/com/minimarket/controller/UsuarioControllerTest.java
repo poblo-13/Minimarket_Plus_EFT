@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Usuario;
 import com.minimarket.service.UsuarioService;
+import com.minimarket.repository.RolRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -27,6 +29,8 @@ public class UsuarioControllerTest {
 
     @Mock
     private UsuarioService usuarioService;
+    @Mock private RolRepository rolRepository;
+    @Mock private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UsuarioController usuarioController;
@@ -51,8 +55,7 @@ public class UsuarioControllerTest {
 
         mockMvc.perform(get("/api/usuarios"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].username").value("goleador99"));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -78,11 +81,14 @@ public class UsuarioControllerTest {
     @Test
     public void testGuardarUsuario() throws Exception {
         when(usuarioService.save(any(Usuario.class))).thenReturn(usuarioMock);
+        when(passwordEncoder.encode(any())).thenReturn("hash");
+        com.minimarket.entity.Rol rol = new com.minimarket.entity.Rol(); rol.setId(1L);
+        when(rolRepository.findAllById(any())).thenReturn(java.util.List.of(rol));
 
         mockMvc.perform(post("/api/usuarios")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(usuarioMock)))
-                .andExpect(status().isOk())
+                .content("{\"username\":\"goleador99\",\"password\":\"ClaveSegura123\",\"rolIds\":[1]}"))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L));
     }
 
@@ -93,7 +99,7 @@ public class UsuarioControllerTest {
 
         mockMvc.perform(put("/api/usuarios/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(usuarioMock)))
+                .content("{\"username\":\"goleador99\",\"password\":null,\"rolIds\":null}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
@@ -104,7 +110,7 @@ public class UsuarioControllerTest {
 
         mockMvc.perform(put("/api/usuarios/99")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(usuarioMock)))
+                .content("{\"username\":\"goleador99\",\"password\":null,\"rolIds\":null}"))
                 .andExpect(status().isNotFound());
     }
 

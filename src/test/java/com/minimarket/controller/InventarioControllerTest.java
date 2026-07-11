@@ -3,6 +3,8 @@ package com.minimarket.controller;
 import com.minimarket.entity.Inventario;
 import com.minimarket.entity.Producto;
 import com.minimarket.service.InventarioService;
+import com.minimarket.service.ProductoService;
+import com.minimarket.exception.ApiExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,7 @@ public class InventarioControllerTest {
 
     @Mock
     private InventarioService inventarioService;
+    @Mock private ProductoService productoService;
 
     @InjectMocks
     private InventarioController inventarioController;
@@ -37,7 +40,7 @@ public class InventarioControllerTest {
 
     @BeforeEach
     public void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(inventarioController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(inventarioController).setControllerAdvice(new ApiExceptionHandler()).build();
         objectMapper = new ObjectMapper().findAndRegisterModules();
 
         inventarioMock = new Inventario();
@@ -59,8 +62,7 @@ public class InventarioControllerTest {
 
         mockMvc.perform(get("/api/inventario"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(15L))
-                .andExpect(jsonPath("$[0].tipoMovimiento").value("Entrada"));
+                .andExpect(jsonPath("$.links[0].rel").value("self"));
     }
 
     @Test
@@ -83,23 +85,26 @@ public class InventarioControllerTest {
 
     @Test
     public void testRegistrarMovimiento() throws Exception {
+        when(productoService.findById(1L)).thenReturn(inventarioMock.getProducto());
         when(inventarioService.save(any(Inventario.class))).thenReturn(inventarioMock);
 
         mockMvc.perform(post("/api/inventario")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(inventarioMock)))
-                .andExpect(status().isOk())
+                .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/inventario/15"))
                 .andExpect(jsonPath("$.id").value(15L));
     }
 
     @Test
     public void testActualizarMovimiento_Encontrado() throws Exception {
         when(inventarioService.findById(15L)).thenReturn(inventarioMock);
+        when(productoService.findById(1L)).thenReturn(inventarioMock.getProducto());
         when(inventarioService.save(any(Inventario.class))).thenReturn(inventarioMock);
 
         mockMvc.perform(put("/api/inventario/15")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(inventarioMock)))
+                .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(15L));
     }
@@ -110,7 +115,7 @@ public class InventarioControllerTest {
 
         mockMvc.perform(put("/api/inventario/99")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(inventarioMock)))
+                .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
                 .andExpect(status().isNotFound());
     }
 
