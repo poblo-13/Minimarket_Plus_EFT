@@ -4,6 +4,7 @@ import com.minimarket.entity.Rol;
 import com.minimarket.entity.Usuario;
 import com.minimarket.repository.RolRepository;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.security.SecurityRoles;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -32,9 +33,9 @@ public class DemoSeedConfig {
                 return;
             }
 
-            Rol admin = obtenerOCrearRol(rolRepository, "ADMIN");
-            Rol cajero = obtenerOCrearRol(rolRepository, "CAJERO");
-            Rol cliente = obtenerOCrearRol(rolRepository, "CLIENTE");
+            Rol admin = obtenerOCrearRol(rolRepository, SecurityRoles.ADMIN);
+            Rol cajero = obtenerOCrearRol(rolRepository, SecurityRoles.CAJERO);
+            Rol cliente = obtenerOCrearRol(rolRepository, SecurityRoles.CLIENTE);
 
             crearUsuarioSiNoExiste(usuarioRepository, passwordEncoder, adminUsername, adminPassword, admin);
             crearUsuarioSiNoExiste(usuarioRepository, passwordEncoder, cajeroUsername, cajeroPassword, cajero);

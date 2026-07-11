@@ -5,6 +5,7 @@ import com.minimarket.api.dto.ProductoResponse;
 import com.minimarket.api.mapper.ResourceMapper;
 import com.minimarket.entity.Categoria;
 import com.minimarket.entity.Producto;
+import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.CategoriaService;
 import com.minimarket.service.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -88,7 +89,7 @@ public class ProductoController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Crea un producto", description = "Requiere HTTP Basic con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Producto creado; Location apunta al enlace self."),
@@ -113,7 +114,7 @@ public class ProductoController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Actualiza un producto", description = "Requiere HTTP Basic con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Producto actualizado en formato HAL."),
@@ -134,7 +135,7 @@ public class ProductoController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Elimina un producto", description = "Requiere HTTP Basic con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Producto eliminado."),

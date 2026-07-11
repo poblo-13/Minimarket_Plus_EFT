@@ -5,6 +5,7 @@ import com.minimarket.api.dto.VentaResponse;
 import com.minimarket.api.mapper.ResourceMapper;
 import com.minimarket.entity.Venta;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.VentaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -53,7 +54,7 @@ public class VentaController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CAJERO', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('" + SecurityRoles.CAJERO + "', '" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Crear una venta")
     @ApiResponses({@ApiResponse(responseCode = "201", description = "Venta creada"),
             @ApiResponse(responseCode = "400", description = "Solicitud inválida"),

@@ -4,6 +4,7 @@ import com.minimarket.api.dto.InventarioRequest;
 import com.minimarket.api.dto.InventarioResponse;
 import com.minimarket.entity.Inventario;
 import com.minimarket.entity.Producto;
+import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -74,7 +75,7 @@ public class InventarioController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Registrar un movimiento de inventario")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Movimiento creado"),
@@ -90,7 +91,7 @@ public class InventarioController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Actualizar un movimiento de inventario")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Movimiento actualizado"),
@@ -106,7 +107,7 @@ public class InventarioController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Eliminar un movimiento de inventario")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Movimiento eliminado"),
