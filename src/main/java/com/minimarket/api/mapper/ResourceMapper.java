@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
-/** Stateless, entity-to-API mapping that never exposes persistence graphs. */
+/** Mapeo sin estado de entidades a API que nunca expone grafos de persistencia. */
 public final class ResourceMapper {
     private ResourceMapper() { }
 
