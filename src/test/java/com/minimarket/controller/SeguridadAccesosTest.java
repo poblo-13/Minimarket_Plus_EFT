@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(value = {ProductoController.class, InventarioController.class, VentaController.class},
         excludeFilters = @Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ApiExceptionHandler.class))
@@ -76,7 +76,11 @@ public class SeguridadAccesosTest {
     @Test
     public void testSeguridad_SinCredencialesGetProductos_DebeDar401() throws Exception {
         mockMvc.perform(get("/api/productos"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", "Basic realm=\"minimarket\""))
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.path").value("/api/productos"));
     }
 
     @Test
@@ -95,7 +99,10 @@ public class SeguridadAccesosTest {
         mockMvc.perform(post("/api/productos")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productoRequestJson()))
-                .andExpect(status().isForbidden()); 
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.path").value("/api/productos"));
     }
 
     @Test
