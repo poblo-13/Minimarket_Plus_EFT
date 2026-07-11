@@ -13,8 +13,8 @@ Esta evidencia fue observada en la ejecución clean-room S8. Los resultados sigu
 ## Evidencia de ejecución
 
 - [x] Java 21 utilizado por la compilación.
-- [x] `sh ./mvnw --batch-mode test` terminó correctamente con **135 pruebas**.
-- [x] `sh ./mvnw --batch-mode verify` terminó correctamente con **135 pruebas**.
+- [x] `sh ./mvnw --batch-mode test` terminó correctamente con **142 pruebas**.
+- [x] `sh ./mvnw --batch-mode verify` terminó correctamente con **142 pruebas**.
 - [x] La ejecución de `verify` generó el reporte JaCoCo y el JAR de la aplicación.
 - [x] `/v3/api-docs` fue accesible públicamente y entregó JSON OpenAPI con título `Minimarket API` y versión `v1`.
 - [x] `/swagger-ui/index.html` fue accesible públicamente y renderizó el título `Minimarket API v1 OAS 3.0`.
@@ -36,3 +36,11 @@ curl -fsS http://localhost:8080/v3/api-docs
 ```
 
 Abra `http://localhost:8080/swagger-ui/index.html` para inspeccionar la UI. No incluya credenciales reales en capturas, documentación ni registros.
+
+## Próximas mejoras priorizadas
+
+Estas acciones son futuras y no deben confundirse con la evidencia S8 completada de las secciones anteriores.
+
+1. **Prioridad 1 — contrato y seguridad:** automatizar la comprobación de Problem Details, enlaces HAL y autorización por recurso bajo mínimo privilegio.
+2. **Prioridad 2 — cobertura y calidad:** ampliar la cobertura de errores, validación y roles, preservando pruebas de integración del contrato OpenAPI.
+3. **Prioridad 3 — mantenibilidad y refinamiento:** unificar anotaciones OpenAPI, `produces` y relaciones HAL; versionar y registrar cualquier cambio de contrato.

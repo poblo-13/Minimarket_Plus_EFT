@@ -55,12 +55,20 @@ sh ./mvnw --batch-mode test
 sh ./mvnw --batch-mode verify
 ```
 
-Ambos comandos finalizaron correctamente con 135 pruebas; `verify` generó el reporte JaCoCo y el JAR.
+Ambos comandos finalizaron correctamente con 142 pruebas; `verify` generó el reporte JaCoCo y el JAR.
 
 ## Reflexión S8
 
-**Calidad.** La separación entre DTO de entrada y respuesta evita exponer entidades y, en usuarios, evita serializar contraseña. La validación Bean Validation y las respuestas Problem Details reducen ambigüedad de entrada. La evidencia clean-room confirma 135 pruebas correctas, generación de JaCoCo y del JAR, además de la publicación de OpenAPI; las pruebas de regresión deben mantenerse al evolucionar el contrato.
+**Calidad.** La separación entre DTO de entrada y respuesta evita exponer entidades y, en usuarios, evita serializar contraseña. La validación Bean Validation y las respuestas Problem Details reducen ambigüedad de entrada. La evidencia clean-room confirma 142 pruebas correctas, generación de JaCoCo y del JAR, además de la publicación de OpenAPI; las pruebas de regresión deben mantenerse al evolucionar el contrato.
 
 **Navegación.** Las respuestas de recursos emplean enlaces HAL para `self` y para relaciones relevantes (por ejemplo, producto–categoría o detalle–venta). Esto permite que un cliente descubra recursos relacionados sin construir todas las URL manualmente. La cobertura de relaciones no es uniforme: por ejemplo, la colección de usuarios solo declara enlace `self`; por ello el cliente no debe asumir enlaces no documentados.
 
 **Mantenibilidad.** Los records DTO, el mapeador y el manejador central de excepciones concentran responsabilidades y hacen más local un cambio de contrato. La convivencia de controladores con distintos niveles de detalle en sus anotaciones OpenAPI es una oportunidad de mejora: conviene mantener respuestas, `produces` y restricciones de rol uniformes y respaldadas por pruebas de integración.
+
+### Próximas mejoras priorizadas
+
+Lo siguiente es trabajo futuro; no forma parte de la evidencia S8 ya completada (142 pruebas aprobadas, JaCoCo/JAR y OpenAPI/Swagger verificados).
+
+1. **Prioridad 1 — contrato y seguridad:** añadir pruebas de contrato para todos los estados Problem Details y enlaces HAL, y revisar que la autorización por recurso respete el principio de mínimo privilegio.
+2. **Prioridad 2 — cobertura y calidad:** medir y elevar la cobertura significativa de flujos de error, validación y roles, manteniendo pruebas de integración contra OpenAPI.
+3. **Prioridad 3 — mantenibilidad y refinamiento:** homogeneizar las anotaciones OpenAPI, tipos `produces` y convenciones de enlaces entre controladores; documentar los cambios de contrato versionados.
