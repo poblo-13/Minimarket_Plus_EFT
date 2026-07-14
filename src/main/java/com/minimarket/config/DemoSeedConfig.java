@@ -9,11 +9,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Set;
 
 @Configuration
+@Profile("dev")
 public class DemoSeedConfig {
 
     @Bean
@@ -22,12 +24,12 @@ public class DemoSeedConfig {
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder,
             @Value("${app.seed.enabled:false}") boolean seedEnabled,
-            @Value("${app.admin.username:admin}") String adminUsername,
-            @Value("${app.admin.password:admin123}") String adminPassword,
-            @Value("${app.cajero.username:cajero}") String cajeroUsername,
-            @Value("${app.cajero.password:cajero123}") String cajeroPassword,
-            @Value("${app.cliente.username:cliente}") String clienteUsername,
-            @Value("${app.cliente.password:cliente123}") String clientePassword) {
+            @Value("${app.admin.username}") String adminUsername,
+            @Value("${app.admin.password}") String adminPassword,
+            @Value("${app.cajero.username}") String cajeroUsername,
+            @Value("${app.cajero.password}") String cajeroPassword,
+            @Value("${app.cliente.username}") String clienteUsername,
+            @Value("${app.cliente.password}") String clientePassword) {
         return args -> {
             if (!seedEnabled) {
                 return;

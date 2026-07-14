@@ -25,16 +25,6 @@ public class DetalleVentaServiceImpl implements DetalleVentaService {
     }
 
     @Override
-    public DetalleVenta save(DetalleVenta detalleVenta) {
-        return detalleVentaRepository.save(detalleVenta);
-    }
-
-    @Override
-    public void deleteById(Long id) {
-        detalleVentaRepository.deleteById(id);
-    }
-
-    @Override
     public List<DetalleVenta> findByVentaId(Long ventaId) {
         return detalleVentaRepository.findByVentaId(ventaId);
     }

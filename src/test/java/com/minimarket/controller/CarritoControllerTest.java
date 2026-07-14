@@ -15,12 +15,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.web.DefaultSecurityFilterChain;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,7 +50,14 @@ public class CarritoControllerTest {
     @BeforeEach
     public void setUp() {
         // Configuramos el simulador de peticiones web
-        mockMvc = MockMvcBuilders.standaloneSetup(carritoController).setControllerAdvice(new ApiExceptionHandler()).build();
+        FilterChainProxy securityFilter = new FilterChainProxy(new DefaultSecurityFilterChain(
+                AnyRequestMatcher.INSTANCE,
+                new SecurityContextHolderFilter(new RequestAttributeSecurityContextRepository())));
+        mockMvc = MockMvcBuilders.standaloneSetup(carritoController)
+                .setControllerAdvice(new ApiExceptionHandler())
+                .apply(springSecurity(securityFilter))
+                .defaultRequest(get("/").with(user("cliente")))
+                .build();
         objectMapper = new ObjectMapper(); // Para convertir objetos a JSON
 
         carritoMock = new Carrito();
@@ -51,6 +65,7 @@ public class CarritoControllerTest {
         carritoMock.setCantidad(2);
         Producto producto = new Producto(); producto.setId(1L); carritoMock.setProducto(producto);
         Usuario usuario = new Usuario(); usuario.setId(1L); carritoMock.setUsuario(usuario);
+        lenient().when(usuarioService.findByUsername("cliente")).thenReturn(java.util.Optional.of(usuario));
     }
 
     @Test
@@ -83,7 +98,6 @@ public class CarritoControllerTest {
 
     @Test
     public void testAgregarProductoAlCarrito() throws Exception {
-        when(usuarioService.findById(1L)).thenReturn(java.util.Optional.of(carritoMock.getUsuario()));
         when(productoService.findById(1L)).thenReturn(carritoMock.getProducto());
         when(carritoService.save(any(Carrito.class))).thenReturn(carritoMock);
 
@@ -99,7 +113,6 @@ public class CarritoControllerTest {
     @Test
     public void testActualizarCarrito_Encontrado() throws Exception {
         when(carritoService.findById(10L)).thenReturn(carritoMock);
-        when(usuarioService.findById(1L)).thenReturn(java.util.Optional.of(carritoMock.getUsuario()));
         when(productoService.findById(1L)).thenReturn(carritoMock.getProducto());
         when(carritoService.save(any(Carrito.class))).thenReturn(carritoMock);
 
@@ -137,5 +150,35 @@ public class CarritoControllerTest {
 
         mockMvc.perform(delete("/api/carrito/99"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testObtenerCarritoDeOtroUsuario_DebeSerBloqueado() throws Exception {
+        Usuario otroUsuario = new Usuario();
+        otroUsuario.setId(2L);
+        carritoMock.setUsuario(otroUsuario);
+        when(carritoService.findById(10L)).thenReturn(carritoMock);
+
+        mockMvc.perform(get("/api/carrito/10"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void testAgregarProductoIgnoraUsuarioIdControladoPorCliente() throws Exception {
+        when(productoService.findById(1L)).thenReturn(carritoMock.getProducto());
+        when(carritoService.save(any(Carrito.class))).thenAnswer(invocation -> {
+            Carrito saved = invocation.getArgument(0);
+            saved.setId(10L);
+            return saved;
+        });
+
+        mockMvc.perform(post("/api/carrito")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"usuarioId\":2,\"productoId\":1,\"cantidad\":2}"))
+                .andExpect(status().isCreated());
+
+        org.mockito.ArgumentCaptor<Carrito> captor = org.mockito.ArgumentCaptor.forClass(Carrito.class);
+        verify(carritoService).save(captor.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(1L, captor.getValue().getUsuario().getId());
     }
 }

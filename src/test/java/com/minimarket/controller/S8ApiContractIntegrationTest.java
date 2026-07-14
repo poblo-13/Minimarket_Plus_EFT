@@ -6,6 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -15,7 +16,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest(properties = "app.seed.enabled=true")
+@SpringBootTest
+@ActiveProfiles("dev")
 @AutoConfigureMockMvc
 class S8ApiContractIntegrationTest {
     @Autowired MockMvc mockMvc;
@@ -99,6 +101,14 @@ class S8ApiContractIntegrationTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/productos']").exists())
+                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['400'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/categorias'].get.responses['401'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/ventas'].post.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/ventas'].post.responses['404'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/inventario'].post.responses['409'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/usuarios/{id}'].put.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/carrito/{id}'].delete.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
                 .andExpect(jsonPath("$.components.securitySchemes.basicAuth.type").value("http"));
     }
 }

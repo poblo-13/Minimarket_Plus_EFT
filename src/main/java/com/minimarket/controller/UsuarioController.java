@@ -7,6 +7,7 @@ import com.minimarket.api.problem.ApiProblem;
 import com.minimarket.entity.Rol;
 import com.minimarket.entity.Usuario;
 import com.minimarket.repository.RolRepository;
+import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,6 +21,7 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -92,6 +94,7 @@ public class UsuarioController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Create a user", description = "Requires HTTP Basic authentication. Password is stored as a hash.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "User created; Location identifies the new resource"),
@@ -99,6 +102,9 @@ public class UsuarioController {
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
+            @ApiResponse(responseCode = "403", description = "ADMIN role is required; RFC 9457 error",
+                    content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "409", description = "Username conflicts with an existing user",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class)))
     })
@@ -116,6 +122,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Update a user", description = "Requires HTTP Basic authentication. Omitted password and role identifiers retain their current values.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Updated HAL user resource"),
@@ -123,6 +130,9 @@ public class UsuarioController {
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
+            @ApiResponse(responseCode = "403", description = "ADMIN role is required; RFC 9457 error",
+                    content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "409", description = "Username conflicts with an existing user",
@@ -148,6 +158,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Delete a user", description = "Requires HTTP Basic authentication.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "User deleted"),
@@ -155,6 +166,9 @@ public class UsuarioController {
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
+            @ApiResponse(responseCode = "403", description = "ADMIN role is required; RFC 9457 error",
+                    content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class)))
     })

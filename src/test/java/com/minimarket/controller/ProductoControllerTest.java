@@ -19,6 +19,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Arrays;
 
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.mockito.ArgumentCaptor;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -91,6 +93,10 @@ public class ProductoControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/productos/1"))
                 .andExpect(jsonPath("$.id").value(1L));
+
+        ArgumentCaptor<Producto> product = ArgumentCaptor.forClass(Producto.class);
+        verify(productoService).save(product.capture());
+        assertEquals(0, product.getValue().getStock());
     }
 
     @Test
@@ -101,9 +107,11 @@ public class ProductoControllerTest {
 
         mockMvc.perform(put("/api/productos/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nombre\":\"Galletas\",\"precio\":1200.0,\"stock\":20,\"categoriaId\":1}"))
+                .content("{\"nombre\":\"Galletas\",\"precio\":1200.0,\"stock\":999,\"categoriaId\":1}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
+
+        assertEquals(20, productoMock.getStock());
     }
 
     @Test

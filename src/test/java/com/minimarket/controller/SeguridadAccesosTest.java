@@ -156,7 +156,7 @@ public class SeguridadAccesosTest {
         venta.setFecha(LocalDateTime.now());
         venta.setUsuario(usuarioValido());
         venta.setDetalles(List.of(detalleValido()));
-        when(ventaService.save(any(Venta.class))).thenReturn(venta);
+        when(ventaService.registrar(any(com.minimarket.api.dto.VentaRequest.class))).thenReturn(venta);
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -168,7 +168,7 @@ public class SeguridadAccesosTest {
     @WithMockUser(roles = "CAJERO")
     public void testSeguridad_CajeroPuedeGenerarVenta() throws Exception {
         Venta venta = ventaValida();
-        when(ventaService.save(any(Venta.class))).thenReturn(venta);
+        when(ventaService.registrar(any(com.minimarket.api.dto.VentaRequest.class))).thenReturn(venta);
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -180,7 +180,7 @@ public class SeguridadAccesosTest {
     @WithMockUser(roles = "ADMIN")
     public void testSeguridad_AdminPuedeGenerarVenta() throws Exception {
         Venta venta = ventaValida();
-        when(ventaService.save(any(Venta.class))).thenReturn(venta);
+        when(ventaService.registrar(any(com.minimarket.api.dto.VentaRequest.class))).thenReturn(venta);
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -228,5 +228,5 @@ public class SeguridadAccesosTest {
 
     private String productoRequestJson() { return "{\"nombre\":\"Galletas\",\"precio\":990.0,\"stock\":20,\"categoriaId\":1}"; }
     private String inventarioRequestJson() { return "{\"productoId\":1,\"cantidad\":10,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"; }
-    private String ventaRequestJson() { return "{\"usuarioId\":1,\"fecha\":\"2025-01-01T10:00:00\"}"; }
+    private String ventaRequestJson() { return "{\"usuarioId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"; }
 }

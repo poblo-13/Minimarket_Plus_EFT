@@ -21,6 +21,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,36 +59,56 @@ public class CarritoController {
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public CollectionModel<EntityModel<CarritoResponse>> listarCarrito() {
-        List<EntityModel<CarritoResponse>> items = carritoService.findAll().stream().map(this::toModel).toList();
+        Long usuarioId = authenticatedUser().getId();
+        List<EntityModel<CarritoResponse>> items = carritoService.findAll().stream()
+                .filter(item -> usuarioId.equals(item.getUsuario().getId()))
+                .map(this::toModel)
+                .toList();
         return CollectionModel.of(items, linkTo(methodOn(CarritoController.class).listarCarrito()).withSelfRel());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener un ítem del carrito")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Ítem encontrado"), @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Ítem no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
-    public EntityModel<CarritoResponse> obtenerCarritoPorId(@PathVariable @Positive Long id) { return toModel(requireCartItem(id)); }
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Ítem encontrado"), @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "403", description = "El ítem pertenece a otro usuario; error RFC 9457.", content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Ítem no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
+    public EntityModel<CarritoResponse> obtenerCarritoPorId(@PathVariable @Positive Long id) { return toModel(requireOwnedCartItem(id)); }
 
     @PostMapping
     @Operation(summary = "Agregar un producto al carrito")
     @ApiResponses({@ApiResponse(responseCode = "201", description = "Ítem creado"), @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Usuario o producto no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public ResponseEntity<EntityModel<CarritoResponse>> agregarProductoAlCarrito(@Valid @RequestBody CarritoRequest request) {
-        EntityModel<CarritoResponse> model = toModel(carritoService.save(fromRequest(request, new Carrito())));
+        EntityModel<CarritoResponse> model = toModel(carritoService.save(fromRequest(request, new Carrito(), authenticatedUser())));
         return ResponseEntity.created(model.getRequiredLink("self").toUri()).body(model);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar un ítem del carrito")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Ítem actualizado"), @ApiResponse(responseCode = "400", description = "Solicitud o identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Ítem, usuario o producto no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
-    public EntityModel<CarritoResponse> actualizarCarrito(@PathVariable @Positive Long id, @Valid @RequestBody CarritoRequest request) { return toModel(carritoService.save(fromRequest(request, requireCartItem(id)))); }
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Ítem actualizado"), @ApiResponse(responseCode = "400", description = "Solicitud o identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "403", description = "El ítem pertenece a otro usuario; error RFC 9457.", content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Ítem, usuario o producto no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
+    public EntityModel<CarritoResponse> actualizarCarrito(@PathVariable @Positive Long id, @Valid @RequestBody CarritoRequest request) { return toModel(carritoService.save(fromRequest(request, requireOwnedCartItem(id), authenticatedUser()))); }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar un ítem del carrito")
-    @ApiResponses({@ApiResponse(responseCode = "204", description = "Ítem eliminado"), @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Ítem no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
-    public ResponseEntity<Void> eliminarProductoDelCarrito(@PathVariable @Positive Long id) { carritoService.deleteById(requireCartItem(id).getId()); return ResponseEntity.noContent().build(); }
+    @ApiResponses({@ApiResponse(responseCode = "204", description = "Ítem eliminado"), @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "403", description = "El ítem pertenece a otro usuario; error RFC 9457.", content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))), @ApiResponse(responseCode = "404", description = "Ítem no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
+    public ResponseEntity<Void> eliminarProductoDelCarrito(@PathVariable @Positive Long id) { carritoService.deleteById(requireOwnedCartItem(id).getId()); return ResponseEntity.noContent().build(); }
 
     private Carrito requireCartItem(Long id) { Carrito item = carritoService.findById(id); if (item == null) throw new NoSuchElementException("Carrito no encontrado"); return item; }
-    private Carrito fromRequest(CarritoRequest request, Carrito item) {
-        Usuario user = usuarioService.findById(request.usuarioId()).orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+    private Carrito requireOwnedCartItem(Long id) {
+        Carrito item = requireCartItem(id);
+        if (!authenticatedUser().getId().equals(item.getUsuario().getId())) {
+            throw new AuthorizationDeniedException("No puede acceder al carrito de otro usuario.");
+        }
+        return item;
+    }
+
+    private Usuario authenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AuthorizationDeniedException("Authentication is required.");
+        }
+        return usuarioService.findByUsername(authentication.getName())
+                .orElseThrow(() -> new AuthorizationDeniedException("Authenticated user was not found."));
+    }
+
+    private Carrito fromRequest(CarritoRequest request, Carrito item, Usuario user) {
         Producto product = productoService.findById(request.productoId());
         if (product == null) throw new NoSuchElementException("Producto no encontrado");
         item.setUsuario(user); item.setProducto(product); item.setCantidad(request.cantidad()); return item;

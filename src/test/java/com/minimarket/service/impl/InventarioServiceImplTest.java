@@ -2,6 +2,7 @@ package com.minimarket.service.impl;
 
 import com.minimarket.entity.Inventario;
 import com.minimarket.entity.Producto;
+import com.minimarket.exception.InsufficientStockException;
 import com.minimarket.repository.InventarioRepository;
 import com.minimarket.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,152 +12,92 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class InventarioServiceImplTest {
+class InventarioServiceImplTest {
 
-    @Mock
-    private InventarioRepository inventarioRepository;
+    @Mock private InventarioRepository inventarioRepository;
+    @Mock private ProductoRepository productoRepository;
+    @InjectMocks private InventarioServiceImpl inventarioService;
 
-    @Mock
-    private ProductoRepository productoRepository;
-
-    @InjectMocks
-    private InventarioServiceImpl inventarioService;
-
-    private Inventario inventarioMock;
+    private Producto producto;
 
     @BeforeEach
-    public void setUp() {
-        // Preparamos nuestro objeto simulado para las pruebas
-        inventarioMock = new Inventario();
-        inventarioMock.setId(15L);
-        inventarioMock.setCantidad(50);
-        inventarioMock.setTipoMovimiento("Entrada");
-        Producto producto = new Producto();
+    void setUp() {
+        producto = new Producto();
         producto.setId(2L);
-        producto.setStock(100);
-        inventarioMock.setProducto(producto);
+        producto.setStock(10);
     }
 
     @Test
-    public void testFindAll() {
-        // Act
-        when(inventarioRepository.findAll()).thenReturn(Arrays.asList(inventarioMock));
+    void saveLocksProductAndRecordsEntrada() {
+        Inventario movement = movement("Entrada", 5);
+        when(productoRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(producto));
+        when(inventarioRepository.save(movement)).thenReturn(movement);
 
-        // Ejecutamos
-        List<Inventario> resultado = inventarioService.findAll();
+        inventarioService.save(movement);
 
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        assertEquals(15L, resultado.get(0).getId());
-        verify(inventarioRepository, times(1)).findAll();
+        assertEquals(15, producto.getStock());
+        assertSame(producto, movement.getProducto());
+        verify(productoRepository).findByIdForUpdate(2L);
+        verify(productoRepository).save(producto);
+        verify(inventarioRepository).save(movement);
     }
 
     @Test
-    public void testFindById_Encontrado() {
-        // Act
-        when(inventarioRepository.findById(15L)).thenReturn(Optional.of(inventarioMock));
+    void saveRejectsSalidaWhenLockedStockIsInsufficient() {
+        Inventario movement = movement("Salida", 11);
+        when(productoRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(producto));
 
-        // Ejecutamos
-        Inventario resultado = inventarioService.findById(15L);
+        assertThrows(InsufficientStockException.class, () -> inventarioService.save(movement));
 
-        // Assert
-        assertNotNull(resultado);
-        assertEquals("Entrada", resultado.getTipoMovimiento());
-        verify(inventarioRepository, times(1)).findById(15L);
+        assertEquals(10, producto.getStock());
+        verify(inventarioRepository, never()).save(any());
+        verify(productoRepository, never()).save(any());
     }
 
     @Test
-    public void testFindById_NoEncontrado() {
-        // Act
-        when(inventarioRepository.findById(99L)).thenReturn(Optional.empty());
+    void sequentialSalidasUseLockedCurrentStock() {
+        Inventario first = movement("Salida", 6);
+        Inventario second = movement("Salida", 5);
+        when(productoRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(producto));
+        when(inventarioRepository.save(first)).thenReturn(first);
 
-        // Ejecutamos
-        Inventario resultado = inventarioService.findById(99L);
+        inventarioService.save(first);
 
-        // Assert
-        assertNull(resultado);
-        verify(inventarioRepository, times(1)).findById(99L);
+        assertEquals(4, producto.getStock());
+        assertThrows(InsufficientStockException.class, () -> inventarioService.save(second));
+        assertEquals(4, producto.getStock());
+        verify(inventarioRepository).save(first);
+        verify(inventarioRepository, never()).save(second);
     }
 
     @Test
-    public void testSave() {
-        // Act
-        when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventarioMock);
+    void existingMovementCannotBeUpdated() {
+        Inventario movement = movement("Entrada", 1);
+        movement.setId(15L);
 
-        // Ejecutamos
-        Inventario resultado = inventarioService.save(inventarioMock);
-
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(50, resultado.getCantidad());
-        
-        assertNotNull(resultado.getTipoMovimiento(), "El tipo de movimiento no debe ser nulo");
-        assertFalse(resultado.getTipoMovimiento().isEmpty(), "El tipo de movimiento no debe estar vacío");
-        assertTrue(resultado.getCantidad() > 0, "La cantidad de movimiento debe ser mayor a cero");
-
-        verify(inventarioRepository, times(1)).save(inventarioMock);
-        verify(productoRepository, times(1)).save(inventarioMock.getProducto());
+        assertThrows(UnsupportedOperationException.class, () -> inventarioService.save(movement));
+        verifyNoInteractions(productoRepository, inventarioRepository);
     }
 
     @Test
-    public void testSaveEntrada_SumaStock() {
-        when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventarioMock);
-
-        inventarioService.save(inventarioMock);
-
-        assertEquals(150, inventarioMock.getProducto().getStock());
-        verify(productoRepository).save(inventarioMock.getProducto());
+    void movementsCannotBeDeleted() {
+        assertThrows(UnsupportedOperationException.class, () -> inventarioService.deleteById(15L));
+        verifyNoInteractions(productoRepository, inventarioRepository);
     }
 
-    @Test
-    public void testSaveSalida_RestaStock() {
-        inventarioMock.setTipoMovimiento("Salida");
-        inventarioMock.setCantidad(30);
-        when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventarioMock);
-
-        inventarioService.save(inventarioMock);
-
-        assertEquals(70, inventarioMock.getProducto().getStock());
-    }
-
-    @Test
-    public void testSaveSalida_StockInsuficiente() {
-        inventarioMock.setTipoMovimiento("Salida");
-        inventarioMock.setCantidad(200);
-
-        assertThrows(IllegalArgumentException.class, () -> inventarioService.save(inventarioMock));
-        verify(inventarioRepository, never()).save(any(Inventario.class));
-    }
-
-    @Test
-    public void testDeleteById() {
-        // Act
-        inventarioService.deleteById(15L);
-
-        // Assert
-        verify(inventarioRepository, times(1)).deleteById(15L);
-    }
-
-    @Test
-    public void testFindByProductoId() {
-        // Act
-        when(inventarioRepository.findByProductoId(2L)).thenReturn(Arrays.asList(inventarioMock));
-
-        // Ejecutamos
-        List<Inventario> resultado = inventarioService.findByProductoId(2L);
-
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        verify(inventarioRepository, times(1)).findByProductoId(2L);
+    private Inventario movement(String type, int quantity) {
+        Inventario movement = new Inventario();
+        Producto requestProduct = new Producto();
+        requestProduct.setId(2L);
+        movement.setProducto(requestProduct);
+        movement.setTipoMovimiento(type);
+        movement.setCantidad(quantity);
+        return movement;
     }
 }

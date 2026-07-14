@@ -22,17 +22,16 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.time.LocalDateTime;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -79,46 +78,18 @@ public class InventarioController {
     @Operation(summary = "Registrar un movimiento de inventario")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Movimiento creado"),
-            @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Producto no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
+             @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "404", description = "Producto no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "409", description = "Stock insuficiente; error INSUFFICIENT_STOCK RFC 9457.", content = @Content(
+                     mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public ResponseEntity<EntityModel<InventarioResponse>> registrarMovimiento(@Valid @RequestBody InventarioRequest request) {
         Inventario saved = inventarioService.save(fromRequest(request, new Inventario()));
         EntityModel<InventarioResponse> model = toModel(saved);
         return ResponseEntity.created(model.getRequiredLink("self").toUri()).body(model);
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Actualizar un movimiento de inventario")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Movimiento actualizado"),
-            @ApiResponse(responseCode = "400", description = "Solicitud o identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Movimiento o producto no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
-    })
-    public EntityModel<InventarioResponse> actualizarMovimiento(@PathVariable @Positive Long id,
-                                                                  @Valid @RequestBody InventarioRequest request) {
-        Inventario updated = inventarioService.save(fromRequest(request, requireMovement(id)));
-        return toModel(updated);
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Eliminar un movimiento de inventario")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Movimiento eliminado"),
-            @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Movimiento no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
-    })
-    public ResponseEntity<Void> eliminarMovimiento(@PathVariable @Positive Long id) {
-        inventarioService.deleteById(requireMovement(id).getId());
-        return ResponseEntity.noContent().build();
     }
 
     private Inventario requireMovement(Long id) {
@@ -137,7 +108,7 @@ public class InventarioController {
         movement.setProducto(product);
         movement.setCantidad(request.cantidad());
         movement.setTipoMovimiento(request.tipoMovimiento());
-        movement.setFechaMovimiento(request.fechaMovimiento());
+        movement.setFechaMovimiento(LocalDateTime.now());
         return movement;
     }
 

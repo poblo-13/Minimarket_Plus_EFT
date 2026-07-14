@@ -32,6 +32,11 @@ public class Inventario {
     @NotNull(message = "La fecha de movimiento es obligatoria")
     private LocalDateTime fechaMovimiento;
 
+    /** Venta que originó esta salida; el inventario solo permite agregar registros. */
+    @ManyToOne
+    @JoinColumn(name = "venta_id")
+    private Venta venta;
+
     // Getters y Setters
     public Long getId() {
         return id;
@@ -72,4 +77,8 @@ public class Inventario {
     public void setFechaMovimiento(LocalDateTime fechaMovimiento) {
         this.fechaMovimiento = fechaMovimiento;
     }
+
+    public Venta getVenta() { return venta; }
+
+    public void setVenta(Venta venta) { this.venta = venta; }
 }

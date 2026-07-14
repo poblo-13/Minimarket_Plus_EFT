@@ -20,10 +20,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Arrays;
 import java.util.List;
 import java.time.LocalDateTime;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class VentaControllerTest {
@@ -93,14 +97,28 @@ public class VentaControllerTest {
 
     @Test
     public void testGuardarVenta() throws Exception {
-        when(usuarioRepository.findById(1L)).thenReturn(java.util.Optional.of(ventaMock.getUsuario()));
-        when(ventaService.save(any(Venta.class))).thenReturn(ventaMock);
+        when(ventaService.registrar(any(com.minimarket.api.dto.VentaRequest.class))).thenReturn(ventaMock);
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"usuarioId\":1,\"fecha\":\"2025-01-01T10:00:00\"}"))
+                .content("{\"usuarioId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/ventas/100"))
                 .andExpect(jsonPath("$.id").value(100L));
+    }
+
+    @Test
+    public void clienteNoPuedeLeerVentaDeOtroUsuario() {
+        Usuario owner = new Usuario();
+        owner.setId(2L);
+        owner.setUsername("owner");
+        ventaMock.setUsuario(owner);
+        when(ventaService.findById(100L)).thenReturn(ventaMock);
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("cliente", "", "ROLE_CLIENTE"));
+        try {
+            assertThrows(AuthorizationDeniedException.class, () -> ventaController.obtenerVentaPorId(100L));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 }

@@ -172,13 +172,13 @@ public class ProductoController {
     private Producto newProduct(ProductoRequest request, Categoria categoria) {
         Producto producto = new Producto();
         apply(request, producto, categoria);
+        producto.setStock(0);
         return producto;
     }
 
     private void apply(ProductoRequest request, Producto producto, Categoria categoria) {
         producto.setNombre(request.nombre());
         producto.setPrecio(request.precio().doubleValue());
-        producto.setStock(request.stock());
         producto.setCategoria(categoria);
     }
 

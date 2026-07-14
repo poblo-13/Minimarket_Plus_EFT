@@ -2,6 +2,7 @@ package com.minimarket.controller;
 
 import com.minimarket.entity.Inventario;
 import com.minimarket.entity.Producto;
+import com.minimarket.exception.InsufficientStockException;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
 import com.minimarket.exception.ApiExceptionHandler;
@@ -18,8 +19,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.time.LocalDateTime;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -94,46 +97,35 @@ public class InventarioControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/inventario/15"))
                 .andExpect(jsonPath("$.id").value(15L));
+
+        ArgumentCaptor<Inventario> movement = ArgumentCaptor.forClass(Inventario.class);
+        verify(inventarioService).save(movement.capture());
+        assertNotEquals(LocalDateTime.of(2025, 1, 1, 10, 0), movement.getValue().getFechaMovimiento());
     }
 
     @Test
-    public void testActualizarMovimiento_Encontrado() throws Exception {
-        when(inventarioService.findById(15L)).thenReturn(inventarioMock);
-        when(productoService.findById(1L)).thenReturn(inventarioMock.getProducto());
-        when(inventarioService.save(any(Inventario.class))).thenReturn(inventarioMock);
-
+    public void testActualizarMovimiento_IsNotExposed() throws Exception {
         mockMvc.perform(put("/api/inventario/15")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(15L));
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
-    public void testActualizarMovimiento_NoEncontrado() throws Exception {
-        when(inventarioService.findById(99L)).thenReturn(null);
-
-        mockMvc.perform(put("/api/inventario/99")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    public void testEliminarMovimiento_Encontrado() throws Exception {
-        when(inventarioService.findById(15L)).thenReturn(inventarioMock);
-
+    public void testEliminarMovimiento_IsNotExposed() throws Exception {
         mockMvc.perform(delete("/api/inventario/15"))
-                .andExpect(status().isNoContent());
-
-        verify(inventarioService, times(1)).deleteById(15L);
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
-    public void testEliminarMovimiento_NoEncontrado() throws Exception {
-        when(inventarioService.findById(99L)).thenReturn(null);
+    public void testRegistrarSalidaInsuficiente_ReturnsConflictProblem() throws Exception {
+        when(productoService.findById(1L)).thenReturn(inventarioMock.getProducto());
+        when(inventarioService.save(any(Inventario.class))).thenThrow(new InsufficientStockException());
 
-        mockMvc.perform(delete("/api/inventario/99"))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/inventario")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Salida\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"));
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
@@ -112,6 +113,19 @@ public class ApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleMethodNotAllowed(
+            HttpRequestMethodNotSupportedException exception,
+            HttpServletRequest request) {
+
+        return problem(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "METHOD_NOT_ALLOWED",
+                "The HTTP method is not supported for this resource.",
+                request
+        );
+    }
+
     @ExceptionHandler({
             NoResourceFoundException.class,
             EntityNotFoundException.class,
@@ -138,6 +152,19 @@ public class ApiExceptionHandler {
                 HttpStatus.CONFLICT,
                 "CONFLICT",
                 "The request conflicts with the current resource state.",
+                request
+        );
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ProblemDetail> handleInsufficientStock(
+            InsufficientStockException exception,
+            HttpServletRequest request) {
+
+        return problem(
+                HttpStatus.CONFLICT,
+                "INSUFFICIENT_STOCK",
+                exception.getMessage(),
                 request
         );
     }

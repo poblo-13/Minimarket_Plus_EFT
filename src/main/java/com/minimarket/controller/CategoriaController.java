@@ -6,6 +6,8 @@ import com.minimarket.api.mapper.ResourceMapper;
 import com.minimarket.entity.Categoria;
 import com.minimarket.service.CategoriaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -14,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +36,9 @@ public class CategoriaController {
 
     @GetMapping
     @Operation(summary = "Listar categorías")
-    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida"))
+    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))))
     public CollectionModel<EntityModel<CategoriaResponse>> listarCategorias() {
         List<EntityModel<CategoriaResponse>> resources = categoriaService.findAll().stream().map(this::resource).toList();
         return CollectionModel.of(resources, linkTo(methodOn(CategoriaController.class).listarCategorias()).withSelfRel());
@@ -41,7 +46,9 @@ public class CategoriaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una categoría")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida"),
+    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
     public ResponseEntity<EntityModel<CategoriaResponse>> obtenerCategoriaPorId(@PathVariable Long id) {
         Categoria categoria = categoriaService.findById(id);
@@ -51,8 +58,15 @@ public class CategoriaController {
     @PostMapping
     @Operation(summary = "Crear una categoría")
     @ApiResponses({@ApiResponse(responseCode = "201", description = "Categoría creada"),
-            @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
-            @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida")})
+             @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public ResponseEntity<EntityModel<CategoriaResponse>> guardarCategoria(@Valid @RequestBody CategoriaRequest request) {
         Categoria categoria = new Categoria();
         categoria.setNombre(request.nombre());
@@ -64,9 +78,16 @@ public class CategoriaController {
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar una categoría")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Categoría actualizada"),
-            @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
-            @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida"),
-            @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
+             @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
     public ResponseEntity<EntityModel<CategoriaResponse>> actualizarCategoria(@PathVariable Long id, @Valid @RequestBody CategoriaRequest request) {
         Categoria categoria = categoriaService.findById(id);
         if (categoria == null) return ResponseEntity.notFound().build();
@@ -77,8 +98,13 @@ public class CategoriaController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar una categoría")
     @ApiResponses({@ApiResponse(responseCode = "204", description = "Categoría eliminada"),
-            @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida"),
-            @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
+             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
+                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
+             @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
     public ResponseEntity<Void> eliminarCategoria(@PathVariable Long id) {
         if (categoriaService.findById(id) == null) return ResponseEntity.notFound().build();
         categoriaService.deleteById(id);

@@ -3,6 +3,7 @@ package com.minimarket.security.config;
 import com.minimarket.security.handler.ProblemAccessDeniedHandler;
 import com.minimarket.security.handler.ProblemAuthenticationEntryPoint;
 import com.minimarket.security.service.CustomUserDetailsService;
+import com.minimarket.security.SecurityRoles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,6 +15,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -40,7 +42,21 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/usuarios/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers("/api/inventario/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers("/api/detalle-ventas/**")
+                        .hasAnyRole(SecurityRoles.CAJERO, SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/categorias/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/categorias/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.DELETE, "/api/categorias/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole(SecurityRoles.ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/ventas/**")
+                        .hasAnyRole(SecurityRoles.CAJERO, SecurityRoles.ADMIN)
+                        .requestMatchers("/api/carrito/**", "/api/categorias/**", "/api/productos/**", "/api/ventas/**")
+                        .authenticated()
+                        .anyRequest().denyAll()
                 )
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(problemAuthenticationEntryPoint)
