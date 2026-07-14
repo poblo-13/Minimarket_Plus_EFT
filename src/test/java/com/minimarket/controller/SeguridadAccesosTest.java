@@ -29,6 +29,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.minimarket.security.filter.JwtAuthenticationFilter;
+import com.minimarket.security.util.JwtUtil;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -40,7 +42,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = {ProductoController.class, InventarioController.class, VentaController.class},
         excludeFilters = @Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ApiExceptionHandler.class))
-@Import({SecurityConfig.class, ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
+@Import({
+        SecurityConfig.class,
+        ProblemAuthenticationEntryPoint.class,
+        ProblemAccessDeniedHandler.class,
+        JwtAuthenticationFilter.class
+})
 public class SeguridadAccesosTest {
 
     @Autowired
@@ -58,7 +65,10 @@ public class SeguridadAccesosTest {
     @MockBean private UsuarioRepository usuarioRepository;
 
     @MockBean
-    private CustomUserDetailsService customUserDetailsService; 
+    private CustomUserDetailsService customUserDetailsService;
+
+    @MockBean
+    private JwtUtil jwtUtil;
 
     @Autowired
     private ObjectMapper objectMapper;

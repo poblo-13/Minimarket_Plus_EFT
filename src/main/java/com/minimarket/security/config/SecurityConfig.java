@@ -16,6 +16,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.http.HttpMethod;
+import com.minimarket.security.filter.JwtAuthenticationFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -25,13 +27,18 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final ProblemAuthenticationEntryPoint problemAuthenticationEntryPoint;
     private final ProblemAccessDeniedHandler problemAccessDeniedHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
-                          ProblemAuthenticationEntryPoint problemAuthenticationEntryPoint,
-                          ProblemAccessDeniedHandler problemAccessDeniedHandler) {
+    public SecurityConfig(
+            CustomUserDetailsService customUserDetailsService,
+            ProblemAuthenticationEntryPoint problemAuthenticationEntryPoint,
+            ProblemAccessDeniedHandler problemAccessDeniedHandler,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
+
         this.customUserDetailsService = customUserDetailsService;
         this.problemAuthenticationEntryPoint = problemAuthenticationEntryPoint;
         this.problemAccessDeniedHandler = problemAccessDeniedHandler;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
@@ -41,6 +48,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/usuarios/**").hasRole(SecurityRoles.ADMIN)
                         .requestMatchers("/api/inventario/**").hasRole(SecurityRoles.ADMIN)
@@ -63,7 +71,11 @@ public class SecurityConfig {
                         .accessDeniedHandler(problemAccessDeniedHandler))
                 .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(problemAuthenticationEntryPoint))
                 .formLogin(form -> form.disable())
-                .logout(logout -> logout.disable());
+                .logout(logout -> logout.disable())
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
         return http.build();
     }
 

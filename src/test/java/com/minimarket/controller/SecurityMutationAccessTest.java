@@ -24,6 +24,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import com.minimarket.security.filter.JwtAuthenticationFilter;
+import com.minimarket.security.util.JwtUtil;
 
 import java.util.Optional;
 
@@ -35,7 +37,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({UsuarioController.class, DetalleVentaController.class, CategoriaController.class})
-@Import({SecurityConfig.class, ProblemAuthenticationEntryPoint.class, ProblemAccessDeniedHandler.class})
+@Import({
+        SecurityConfig.class,
+        ProblemAuthenticationEntryPoint.class,
+        ProblemAccessDeniedHandler.class,
+        JwtAuthenticationFilter.class
+})
 class SecurityMutationAccessTest {
 
     @Autowired private MockMvc mockMvc;
@@ -47,6 +54,7 @@ class SecurityMutationAccessTest {
     @MockBean private ProductoRepository productoRepository;
     @MockBean private CategoriaService categoriaService;
     @MockBean private CustomUserDetailsService customUserDetailsService;
+    @MockBean private JwtUtil jwtUtil;
 
     @Test
     @WithMockUser(roles = "CLIENTE")
