@@ -45,7 +45,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Carrito", description = "Ítems del carrito de compra")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class CarritoController {
 
     private final CarritoService carritoService;

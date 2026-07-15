@@ -30,7 +30,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequestMapping("/api/categorias")
 @RequiredArgsConstructor
 @Tag(name = "Categorias")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class CategoriaController {
     private final CategoriaService categoriaService;
 

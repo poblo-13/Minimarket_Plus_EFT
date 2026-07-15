@@ -36,7 +36,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequestMapping("/api/ventas")
 @RequiredArgsConstructor
 @Tag(name = "Ventas")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class VentaController {
     private final VentaService ventaService;
     private final UsuarioRepository usuarioRepository;

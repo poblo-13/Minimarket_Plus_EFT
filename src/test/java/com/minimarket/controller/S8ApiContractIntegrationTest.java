@@ -97,18 +97,31 @@ class S8ApiContractIntegrationTest {
     }
 
     @Test
-    void openApiDocumentsPathsBasicAuthAndProblemSchema() throws Exception {
+    void openApiDocumentsPathsBearerAuthAndProblemSchema() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/productos']").exists())
-                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['400'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/categorias'].get.responses['401'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/ventas'].post.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/ventas'].post.responses['404'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/inventario'].post.responses['409'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/usuarios/{id}'].put.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.paths['/api/carrito/{id}'].delete.responses['403'].content['application/problem+json'].schema.$ref").value("#/components/schemas/ProblemDetail"))
-                .andExpect(jsonPath("$.components.securitySchemes.basicAuth.type").value("http"));
+                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['400'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/categorias'].get.responses['401'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/ventas'].post.responses['403'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/ventas'].post.responses['404'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/inventario'].post.responses['409'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['403'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/usuarios/{id}'].put.responses['403'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.paths['/api/carrito/{id}'].delete.responses['403'].content['application/problem+json'].schema.$ref")
+                        .value("#/components/schemas/ProblemDetail"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type")
+                        .value("http"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme")
+                        .value("bearer"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.bearerFormat")
+                        .value("JWT"));
     }
 }

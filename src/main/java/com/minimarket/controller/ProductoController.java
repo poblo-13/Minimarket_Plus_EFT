@@ -47,7 +47,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequestMapping(value = "/api/productos", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Productos", description = "Catálogo de productos en formato HAL.")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class ProductoController {
 
     private final ProductoService productoService;

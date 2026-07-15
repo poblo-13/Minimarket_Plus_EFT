@@ -41,7 +41,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Inventario", description = "Movimientos de inventario")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class InventarioController {
 
     private final InventarioService inventarioService;
