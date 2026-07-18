@@ -100,7 +100,7 @@ public class VentaControllerTest {
 
         mockMvc.perform(post("/api/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"usuarioId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"))
+                .content("{\"usuarioId\":1,\"sucursalId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/ventas/100"))
                 .andExpect(jsonPath("$.id").value(100L));

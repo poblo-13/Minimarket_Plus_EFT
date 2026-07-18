@@ -53,10 +53,11 @@ public class PedidoVentaIntegrationImpl implements PedidoVentaIntegration {
             productosBloqueados.put(productoId, productoRepository.findByIdForUpdate(productoId)
                     .orElseThrow(() -> new NoSuchElementException("Producto no encontrado: " + productoId)));
         }
+        var venta = ventaService.registrarDesdePedido(pedido, productosBloqueados);
         for (Map.Entry<Long, Integer> linea : cantidades.entrySet()) {
-            stockSucursalService.descontarParaConfirmacionPedido(pedido.getSucursalId(), linea.getKey(), linea.getValue());
+            stockSucursalService.descontarParaVenta(pedido.getSucursalId(), linea.getKey(), linea.getValue(), venta, venta.getFecha());
         }
-        ventaService.registrarDesdePedido(pedido, productosBloqueados);
+        pedido.setVenta(venta);
         pedido.setEstado(EstadoPedido.CONFIRMADO);
         return pedido;
     }

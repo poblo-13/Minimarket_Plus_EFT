@@ -13,6 +13,8 @@ import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.CategoriaRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.sucursal.Sucursal;
+import com.minimarket.sucursal.SucursalRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,15 +36,17 @@ class PedidoPersistenceIntegrationTest {
     @Autowired ProductoRepository productoRepository;
     @Autowired CategoriaRepository categoriaRepository;
     @Autowired EntityManager entityManager;
+    @Autowired SucursalRepository sucursalRepository;
 
     @Test
     @Transactional
     void persisteDetallesEnCascadeSnapshotsTimestampsYVersion() {
         Usuario usuario = usuario();
         Producto producto = producto();
+        Sucursal sucursal = sucursal();
 
         Pedido creado = pedidoService.crear(usuario.getId(), new CrearPedidoRequest(TipoEntrega.DESPACHO_DOMICILIO,
-                null, "Calle Uno 123", List.of(new LineaPedidoRequest(producto.getId(), 2))));
+                sucursal.getId(), "Calle Uno 123", List.of(new LineaPedidoRequest(producto.getId(), 2))));
         Pedido persistido = pedidoRepository.findById(creado.getId()).orElseThrow();
 
         assertEquals(new BigDecimal("25.00"), persistido.getTotal());
@@ -77,5 +81,11 @@ class PedidoPersistenceIntegrationTest {
         producto.setStock(5);
         producto.setCategoria(categoria);
         return productoRepository.save(producto);
+    }
+
+    private Sucursal sucursal() {
+        Sucursal sucursal = new Sucursal();
+        sucursal.setNombre("pedido-sucursal-" + System.nanoTime());
+        return sucursalRepository.save(sucursal);
     }
 }

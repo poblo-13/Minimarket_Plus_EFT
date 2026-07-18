@@ -13,6 +13,7 @@ import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.sucursal.SucursalRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,13 +29,16 @@ public class PedidoServiceImpl implements PedidoService {
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
     private final PedidoVentaIntegration pedidoVentaIntegration;
+    private final SucursalRepository sucursalRepository;
 
     public PedidoServiceImpl(PedidoRepository pedidoRepository, UsuarioRepository usuarioRepository,
-                              ProductoRepository productoRepository, PedidoVentaIntegration pedidoVentaIntegration) {
+                              ProductoRepository productoRepository, PedidoVentaIntegration pedidoVentaIntegration,
+                              SucursalRepository sucursalRepository) {
         this.pedidoRepository = pedidoRepository;
         this.usuarioRepository = usuarioRepository;
         this.productoRepository = productoRepository;
         this.pedidoVentaIntegration = pedidoVentaIntegration;
+        this.sucursalRepository = sucursalRepository;
     }
 
     @Override
@@ -44,6 +48,9 @@ public class PedidoServiceImpl implements PedidoService {
             throw new IllegalArgumentException("El cliente autenticado es obligatorio");
         }
         validarRequest(request);
+        if (!sucursalRepository.existsById(request.sucursalId())) {
+            throw new NoSuchElementException("Sucursal no encontrada");
+        }
         Usuario cliente = usuarioRepository.findById(clienteId)
                 .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
         return crearParaCliente(cliente, request);
@@ -56,6 +63,9 @@ public class PedidoServiceImpl implements PedidoService {
             throw new IllegalArgumentException("El username del cliente autenticado es obligatorio");
         }
         validarRequest(request);
+        if (!sucursalRepository.existsById(request.sucursalId())) {
+            throw new NoSuchElementException("Sucursal no encontrada");
+        }
         Usuario cliente = usuarioRepository.findByUsername(usernameCliente)
                 .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
         return crearParaCliente(cliente, request);
@@ -155,8 +165,8 @@ public class PedidoServiceImpl implements PedidoService {
         if (request == null || request.tipoEntrega() == null || request.detalles() == null || request.detalles().isEmpty()) {
             throw new IllegalArgumentException("El pedido debe incluir tipo de entrega y al menos un detalle");
         }
-        if (request.tipoEntrega() == TipoEntrega.RETIRO_TIENDA && request.sucursalId() == null) {
-            throw new IllegalArgumentException("El retiro en tienda requiere sucursalId");
+        if (request.sucursalId() == null) {
+            throw new IllegalArgumentException("Todo pedido requiere sucursalId");
         }
         if (request.tipoEntrega() == TipoEntrega.DESPACHO_DOMICILIO
                 && (request.direccionEntrega() == null || request.direccionEntrega().isBlank())) {

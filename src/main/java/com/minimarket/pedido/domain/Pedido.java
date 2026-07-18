@@ -1,6 +1,7 @@
 package com.minimarket.pedido.domain;
 
 import com.minimarket.entity.Usuario;
+import com.minimarket.entity.Venta;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Version;
@@ -54,6 +56,10 @@ public class Pedido {
 
     @Column(length = 500)
     private String direccionEntrega;
+
+    @OneToOne
+    @JoinColumn(name = "venta_id", unique = true)
+    private Venta venta;
 
     @Column(nullable = false, precision = 19, scale = 2)
     @NotNull(message = "El total es obligatorio")
@@ -108,6 +114,8 @@ public class Pedido {
     public void setSucursalId(Long sucursalId) { this.sucursalId = sucursalId; }
     public String getDireccionEntrega() { return direccionEntrega; }
     public void setDireccionEntrega(String direccionEntrega) { this.direccionEntrega = direccionEntrega; }
+    public Venta getVenta() { return venta; }
+    public void setVenta(Venta venta) { this.venta = venta; }
     public BigDecimal getTotal() { return total; }
     public void setTotal(BigDecimal total) { this.total = total; }
     public LocalDateTime getCreadoEn() { return creadoEn; }

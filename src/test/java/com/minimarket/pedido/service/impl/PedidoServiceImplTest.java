@@ -11,6 +11,7 @@ import com.minimarket.pedido.integration.PedidoVentaIntegration;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.sucursal.SucursalRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,7 @@ class PedidoServiceImplTest {
     @Mock UsuarioRepository usuarioRepository;
     @Mock ProductoRepository productoRepository;
     @Mock PedidoVentaIntegration pedidoVentaIntegration;
+    @Mock SucursalRepository sucursalRepository;
     @InjectMocks PedidoServiceImpl pedidoService;
 
     @Test
@@ -37,6 +39,7 @@ class PedidoServiceImplTest {
         Usuario cliente = cliente(7L);
         Producto producto = producto(11L, "Pan", 1.10D);
         when(usuarioRepository.findById(7L)).thenReturn(Optional.of(cliente));
+        when(sucursalRepository.existsById(3L)).thenReturn(true);
         when(productoRepository.findById(11L)).thenReturn(Optional.of(producto));
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

@@ -13,6 +13,9 @@ import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.repository.VentaRepository;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.VentaService;
+import com.minimarket.sucursal.StockSucursalService;
+import com.minimarket.sucursal.Sucursal;
+import com.minimarket.sucursal.SucursalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,8 @@ public class VentaServiceImpl implements VentaService {
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
     private final InventarioService inventarioService;
+    private final SucursalRepository sucursalRepository;
+    private final StockSucursalService stockSucursalService;
 
     @Override
     public List<Venta> findAll() {
@@ -47,6 +52,8 @@ public class VentaServiceImpl implements VentaService {
     @Transactional
     public Venta registrar(VentaRequest request) {
         Usuario usuario = usuarioRepository.findById(request.usuarioId()).orElseThrow(NoSuchElementException::new);
+        Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
+                .orElseThrow(() -> new NoSuchElementException("Sucursal no encontrada"));
         Map<Long, Integer> lineas = aggregate(request.lineas());
         LocalDateTime fecha = LocalDateTime.now();
         Map<Long, Producto> productosBloqueados = new TreeMap<>();
@@ -58,6 +65,7 @@ public class VentaServiceImpl implements VentaService {
 
         Venta venta = new Venta();
         venta.setUsuario(usuario);
+        venta.setSucursal(sucursal);
         venta.setFecha(fecha);
         List<DetalleVenta> detalles = new ArrayList<>();
         for (Long productoId : lineas.keySet()) {
@@ -73,7 +81,7 @@ public class VentaServiceImpl implements VentaService {
         Venta saved = ventaRepository.save(venta);
 
         for (DetalleVenta detalle : saved.getDetalles()) {
-            inventarioService.registrarSalidaVenta(detalle.getProducto(), detalle.getCantidad(), fecha, saved);
+            stockSucursalService.descontarParaVenta(sucursal.getId(), detalle.getProducto().getId(), detalle.getCantidad(), saved, fecha);
         }
         return saved;
     }
@@ -83,6 +91,8 @@ public class VentaServiceImpl implements VentaService {
     public Venta registrarDesdePedido(Pedido pedido, Map<Long, Producto> productosBloqueados) {
         Venta venta = new Venta();
         venta.setUsuario(pedido.getUsuario());
+        venta.setSucursal(sucursalRepository.findById(pedido.getSucursalId())
+                .orElseThrow(() -> new NoSuchElementException("Sucursal no encontrada")));
         venta.setFecha(LocalDateTime.now());
         List<DetalleVenta> detalles = new ArrayList<>();
         for (DetallePedido detallePedido : pedido.getDetalles()) {

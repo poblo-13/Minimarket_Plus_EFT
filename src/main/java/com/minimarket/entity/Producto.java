@@ -1,5 +1,6 @@
 package com.minimarket.entity;
 
+import com.minimarket.abastecimiento.Proveedor;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -12,6 +13,10 @@ public class Producto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * Proyección global heredada. Los flujos nuevos de pedido y venta operan exclusivamente sobre
+     * StockSucursal; este valor permanece sólo por compatibilidad con inventario legado.
+     */
     @Column(nullable = false)
     @NotBlank(message = "El nombre del producto es obligatorio")
     private String nombre;
@@ -30,6 +35,11 @@ public class Producto {
     @JoinColumn(name = "categoria_id", nullable = false)
     @NotNull(message = "La categoria es obligatoria")
     private Categoria categoria;
+
+    /** Proveedor operativo usado por la reposición automática de StockSucursal. */
+    @ManyToOne
+    @JoinColumn(name = "proveedor_reposicion_id")
+    private Proveedor proveedorReposicion;
 
     // Getters y Setters
     public Long getId() {
@@ -71,4 +81,6 @@ public class Producto {
     public void setCategoria(Categoria categoria) {
         this.categoria = categoria;
     }
+    public Proveedor getProveedorReposicion() { return proveedorReposicion; }
+    public void setProveedorReposicion(Proveedor proveedorReposicion) { this.proveedorReposicion = proveedorReposicion; }
 }
