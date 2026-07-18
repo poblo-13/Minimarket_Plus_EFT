@@ -15,6 +15,8 @@ import com.minimarket.service.VentaService;
 import com.minimarket.service.CategoriaService;
 import com.minimarket.promocion.PromocionService;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.sucursal.SucursalRepository;
+import com.minimarket.sucursal.Sucursal;
 import com.minimarket.repository.VentaRepository;
 import com.minimarket.security.CurrentActorService;
 import com.minimarket.security.handler.ProblemAccessDeniedHandler;
@@ -67,6 +69,7 @@ public class SeguridadAccesosTest {
     @MockBean private CategoriaService categoriaService;
     @MockBean private PromocionService promocionService;
     @MockBean private UsuarioRepository usuarioRepository;
+    @MockBean private SucursalRepository sucursalRepository;
     @MockBean private VentaRepository ventaRepository;
     @MockBean private CurrentActorService currentActorService;
 
@@ -84,9 +87,13 @@ public class SeguridadAccesosTest {
         Categoria categoria = new Categoria(); categoria.setId(1L); categoria.setNombre("Abarrotes");
         Producto producto = productoValido(); producto.setId(1L);
         Usuario usuario = usuarioValido();
+        Sucursal sucursal = new Sucursal();
+        sucursal.setId(1L);
+        sucursal.setNombre("Sucursal de prueba");
         when(categoriaService.findById(1L)).thenReturn(categoria);
         when(productoService.findById(1L)).thenReturn(producto);
         when(usuarioRepository.findById(1L)).thenReturn(java.util.Optional.of(usuario));
+        when(sucursalRepository.findById(1L)).thenReturn(java.util.Optional.of(sucursal));
     }
 
     @Test
@@ -243,6 +250,6 @@ public class SeguridadAccesosTest {
     }
 
     private String productoRequestJson() { return "{\"nombre\":\"Galletas\",\"precio\":990.0,\"stock\":20,\"categoriaId\":1}"; }
-    private String inventarioRequestJson() { return "{\"productoId\":1,\"cantidad\":10,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"; }
+    private String inventarioRequestJson() { return "{\"productoId\":1,\"sucursalId\":1,\"cantidad\":10,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"; }
     private String ventaRequestJson() { return "{\"usuarioId\":1,\"sucursalId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"; }
 }

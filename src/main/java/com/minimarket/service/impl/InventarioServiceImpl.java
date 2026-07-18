@@ -7,6 +7,7 @@ import com.minimarket.exception.InsufficientStockException;
 import com.minimarket.repository.InventarioRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.InventarioService;
+import com.minimarket.sucursal.StockSucursalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class InventarioServiceImpl implements InventarioService {
 
     private final InventarioRepository inventarioRepository;
     private final ProductoRepository productoRepository;
+    private final StockSucursalService stockSucursalService;
 
     @Override
     public List<Inventario> findAll() {
@@ -37,10 +39,17 @@ public class InventarioServiceImpl implements InventarioService {
         if (inventario.getId() != null) {
             throw new UnsupportedOperationException("Los movimientos de inventario no se pueden modificar");
         }
-        Producto producto = lockProduct(inventario);
-        applyMovement(producto, inventario);
-        inventario.setProducto(producto);
-        productoRepository.save(producto);
+        if (inventario.getProducto() == null || inventario.getProducto().getId() == null
+                || inventario.getSucursal() == null || inventario.getSucursal().getId() == null) {
+            throw new IllegalArgumentException("Sucursal y producto son obligatorios para registrar inventario operativo");
+        }
+        if ("Entrada".equals(inventario.getTipoMovimiento())) {
+            stockSucursalService.aplicarEntrada(inventario.getSucursal().getId(), inventario.getProducto().getId(), inventario.getCantidad());
+        } else if ("Salida".equals(inventario.getTipoMovimiento())) {
+            stockSucursalService.aplicarSalidaAdministrada(inventario.getSucursal().getId(), inventario.getProducto().getId(), inventario.getCantidad());
+        } else {
+            throw new IllegalArgumentException("Tipo de movimiento inválido");
+        }
         return inventarioRepository.save(inventario);
     }
 
@@ -67,31 +76,12 @@ public class InventarioServiceImpl implements InventarioService {
         movement.setTipoMovimiento("Salida");
         movement.setFechaMovimiento(fecha);
         movement.setVenta(venta);
-        applyMovement(producto, movement);
-        productoRepository.save(producto);
+        if (venta == null || venta.getSucursal() == null) {
+            throw new IllegalArgumentException("La venta con sucursal es obligatoria para registrar salida operativa");
+        }
+        movement.setSucursal(venta.getSucursal());
+        stockSucursalService.aplicarSalidaAdministrada(venta.getSucursal().getId(), producto.getId(), cantidad);
         return inventarioRepository.save(movement);
     }
 
-    private Producto lockProduct(Inventario inventario) {
-        if (inventario.getProducto() == null || inventario.getProducto().getId() == null) {
-            throw new IllegalArgumentException("El producto es obligatorio para registrar inventario");
-        }
-        return productoRepository.findByIdForUpdate(inventario.getProducto().getId())
-                .orElseThrow(() -> new java.util.NoSuchElementException("Producto no encontrado"));
-    }
-
-    private void applyMovement(Producto producto, Inventario movement) {
-        int stockActual = producto.getStock() == null ? 0 : producto.getStock();
-        int cantidad = movement.getCantidad() == null ? 0 : movement.getCantidad();
-        int delta = 0;
-        if ("Entrada".equalsIgnoreCase(movement.getTipoMovimiento())) {
-            delta = cantidad;
-        } else if ("Salida".equalsIgnoreCase(movement.getTipoMovimiento())) {
-            delta = -cantidad;
-        }
-        if (delta < 0 && stockActual < -delta) {
-            throw new InsufficientStockException();
-        }
-        producto.setStock(stockActual + delta);
-    }
 }

@@ -5,6 +5,8 @@ import com.minimarket.entity.Producto;
 import com.minimarket.exception.InsufficientStockException;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
+import com.minimarket.sucursal.SucursalRepository;
+import com.minimarket.sucursal.Sucursal;
 import com.minimarket.exception.ApiExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,7 @@ public class InventarioControllerTest {
     @Mock
     private InventarioService inventarioService;
     @Mock private ProductoService productoService;
+    @Mock private SucursalRepository sucursalRepository;
 
     @InjectMocks
     private InventarioController inventarioController;
@@ -57,6 +60,7 @@ public class InventarioControllerTest {
         producto.setPrecio(1200.0);
         producto.setStock(20);
         inventarioMock.setProducto(producto);
+        Sucursal sucursal = new Sucursal(); sucursal.setId(2L); sucursal.setNombre("Centro"); inventarioMock.setSucursal(sucursal);
     }
 
     @Test
@@ -89,11 +93,12 @@ public class InventarioControllerTest {
     @Test
     public void testRegistrarMovimiento() throws Exception {
         when(productoService.findById(1L)).thenReturn(inventarioMock.getProducto());
+        when(sucursalRepository.findById(2L)).thenReturn(java.util.Optional.of(inventarioMock.getSucursal()));
         when(inventarioService.save(any(Inventario.class))).thenReturn(inventarioMock);
 
         mockMvc.perform(post("/api/inventario")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
+                .content("{\"sucursalId\":2,\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/inventario/15"))
                 .andExpect(jsonPath("$.id").value(15L));
@@ -120,11 +125,12 @@ public class InventarioControllerTest {
     @Test
     public void testRegistrarSalidaInsuficiente_ReturnsConflictProblem() throws Exception {
         when(productoService.findById(1L)).thenReturn(inventarioMock.getProducto());
+        when(sucursalRepository.findById(2L)).thenReturn(java.util.Optional.of(inventarioMock.getSucursal()));
         when(inventarioService.save(any(Inventario.class))).thenThrow(new InsufficientStockException());
 
         mockMvc.perform(post("/api/inventario")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Salida\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
+                        .content("{\"sucursalId\":2,\"productoId\":1,\"cantidad\":50,\"tipoMovimiento\":\"Salida\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"));
     }

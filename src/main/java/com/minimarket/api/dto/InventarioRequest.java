@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDateTime;
 
 public record InventarioRequest(
+        @NotNull @Positive Long sucursalId,
         @NotNull @Positive Long productoId,
         @NotNull @Min(1) Integer cantidad,
         @NotBlank @Pattern(regexp = "Entrada|Salida") String tipoMovimiento,

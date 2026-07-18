@@ -73,7 +73,10 @@ public class StockSucursalServiceImpl implements StockSucursalService {
     @Override
     @Transactional
     public StockSucursal aplicarSalidaAdministrada(Long sucursalId, Long productoId, int cantidad) {
-        return descontarParaVenta(sucursalId, productoId, cantidad, null, LocalDateTime.now());
+        StockSucursal stock = buscarStockBloqueado(sucursalId, productoId);
+        stock.disminuir(cantidad);
+        crearReposicionSiCorresponde(stock);
+        return stock;
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.minimarket.entity.Producto;
 import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
+import com.minimarket.sucursal.SucursalRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -46,6 +47,7 @@ public class InventarioController {
 
     private final InventarioService inventarioService;
     private final ProductoService productoService;
+    private final SucursalRepository sucursalRepository;
 
     @GetMapping
     @Operation(summary = "Listar movimientos de inventario")
@@ -106,6 +108,8 @@ public class InventarioController {
             throw new NoSuchElementException("Producto no encontrado");
         }
         movement.setProducto(product);
+        movement.setSucursal(sucursalRepository.findById(request.sucursalId())
+                .orElseThrow(() -> new NoSuchElementException("Sucursal no encontrada")));
         movement.setCantidad(request.cantidad());
         movement.setTipoMovimiento(request.tipoMovimiento());
         movement.setFechaMovimiento(LocalDateTime.now());
