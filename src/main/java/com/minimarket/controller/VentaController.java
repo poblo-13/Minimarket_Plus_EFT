@@ -19,6 +19,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +35,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@RequestMapping("/api/ventas")
+@RequestMapping(value = "/api/ventas", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Ventas")
 @SecurityRequirement(name = "bearerAuth")
@@ -43,9 +46,9 @@ public class VentaController {
 
     @GetMapping
     @Operation(summary = "Listar ventas")
-    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Colección HAL de ventas", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CollectionModel.class))), @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                    schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))))
+                    schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public CollectionModel<EntityModel<VentaResponse>> listarVentas() {
         List<Venta> ventas = currentActor.isStaff() ? ventaRepository.findAll()
                 : ventaRepository.findByUsuarioId(currentActor.userId());
@@ -55,20 +58,20 @@ public class VentaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una venta")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Venta HAL", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = VentaResponse.class))), @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Venta no encontrada")})
     public ResponseEntity<EntityModel<VentaResponse>> obtenerVentaPorId(@PathVariable Long id) {
         Venta venta = (currentActor.isStaff() ? ventaRepository.findById(id)
                 : ventaRepository.findByIdAndUsuarioId(id, currentActor.userId())).orElse(null);
-        return venta == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(resource(venta));
+        return venta == null ? notFound("Venta no encontrada") : ResponseEntity.ok(resource(venta));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('" + SecurityRoles.CAJERO + "', '" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Registrar una venta con sus líneas", description = "El servidor asigna fecha y precios; líneas duplicadas se consolidan.")
-    @ApiResponses({@ApiResponse(responseCode = "201", description = "Venta creada"),
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Venta creada", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = VentaResponse.class))),
              @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -99,6 +102,12 @@ public class VentaController {
             resource.add(linkTo(methodOn(UsuarioController.class).obtenerUsuarioPorId(venta.getUsuario().getId())).withRel("usuario"));
         }
         return resource;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ResponseEntity<EntityModel<VentaResponse>> notFound(String detail) {
+        return (ResponseEntity) ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, detail));
     }
 
 }

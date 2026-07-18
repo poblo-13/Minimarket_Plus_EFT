@@ -2,9 +2,16 @@ package com.minimarket.controller;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.minimarket.entity.Rol;
+import com.minimarket.entity.Usuario;
+import com.minimarket.repository.RolRepository;
+import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.security.SecurityRoles;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -13,10 +20,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,7 +35,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 class S9OpenApiContractIntegrationTest {
+    private static final String ADMIN_USERNAME = "s9-oas-admin";
+    private static final String ADMIN_PASSWORD = "S9OasPass123";
     @Autowired MockMvc mockMvc;
+    @Autowired UsuarioRepository usuarioRepository;
+    @Autowired RolRepository rolRepository;
+    @Autowired PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void createAdminFixture() {
+        Rol adminRole = rolRepository.findByNombre(SecurityRoles.ADMIN)
+                .orElseGet(() -> rolRepository.save(new Rol(SecurityRoles.ADMIN)));
+        Usuario admin = usuarioRepository.findByUsername(ADMIN_USERNAME).orElseGet(Usuario::new);
+        admin.setUsername(ADMIN_USERNAME);
+        admin.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+        admin.setRoles(Set.of(adminRole));
+        usuarioRepository.save(admin);
+    }
 
     @ParameterizedTest(name = "{0} {1} -> {2} documents {3} as {4}")
     @MethodSource("operations")
@@ -58,6 +84,18 @@ class S9OpenApiContractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/plain"));
         assertNotNull(apiDocs().read("$.paths['/public/hola'].get.responses['200'].content['text/plain']"));
+    }
+
+    @Test
+    void legacyHalAndProblemResponsesMatchTheirDocumentedContract() throws Exception {
+        mockMvc.perform(get("/api/categorias").with(adminBearer()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/hal+json"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$._links.self.href").exists());
+        mockMvc.perform(get("/api/categorias/999999").with(adminBearer()))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value(404));
     }
 
     @Test
@@ -117,7 +155,27 @@ class S9OpenApiContractIntegrationTest {
                 op("/api/promociones", "post", "201", "application/json", "PromocionResponse"),
                 op("/api/promociones/{id}", "put", "200", "application/json", "PromocionResponse"),
                 op("/api/promociones/{id}", "delete", "204", null, null),
-                op("/api/reportes/rotacion", "get", "200", "application/json", "array:RotacionProductoResponse"));
+                op("/api/reportes/rotacion", "get", "200", "application/json", "array:RotacionProductoResponse"),
+                op("/api/categorias", "get", "200", "application/hal+json", "CollectionModel"),
+                op("/api/categorias/{id}", "get", "200", "application/hal+json", "CategoriaResponse"),
+                op("/api/categorias", "post", "201", "application/hal+json", "CategoriaResponse"),
+                op("/api/categorias/{id}", "put", "200", "application/hal+json", "CategoriaResponse"),
+                op("/api/usuarios", "get", "200", "application/hal+json", "CollectionModel"),
+                op("/api/usuarios/{id}", "get", "200", "application/hal+json", "UsuarioResponse"),
+                op("/api/usuarios", "post", "201", "application/hal+json", "UsuarioResponse"),
+                op("/api/usuarios/{id}", "put", "200", "application/hal+json", "UsuarioResponse"),
+                op("/api/inventario", "get", "200", "application/hal+json", "CollectionModel"),
+                op("/api/inventario/{id}", "get", "200", "application/hal+json", "InventarioResponse"),
+                op("/api/inventario", "post", "201", "application/hal+json", "InventarioResponse"),
+                op("/api/carrito", "get", "200", "application/hal+json", "CollectionModel"),
+                op("/api/carrito/{id}", "get", "200", "application/hal+json", "CarritoResponse"),
+                op("/api/carrito", "post", "201", "application/hal+json", "CarritoResponse"),
+                op("/api/carrito/{id}", "put", "200", "application/hal+json", "CarritoResponse"),
+                op("/api/ventas", "get", "200", "application/hal+json", "CollectionModel"),
+                op("/api/ventas/{id}", "get", "200", "application/hal+json", "VentaResponse"),
+                op("/api/ventas", "post", "201", "application/hal+json", "VentaResponse"),
+                op("/api/detalle-ventas", "get", "200", "application/hal+json", "CollectionModel"),
+                op("/api/detalle-ventas/{id}", "get", "200", "application/hal+json", "DetalleVentaResponse"));
     }
 
     private static Stream<Arguments> requests() {
@@ -128,6 +186,14 @@ class S9OpenApiContractIntegrationTest {
                 Arguments.of("/api/admin/sucursales", "post", "CrearSucursalRequest"), Arguments.of("/api/admin/sucursales/{id}/stock", "put", "ConfigurarStockRequest"),
                 Arguments.of("/api/admin/sucursales/{id}/entradas", "post", "MovimientoStockRequest"), Arguments.of("/api/admin/sucursales/{id}/salidas", "post", "MovimientoStockRequest"),
                 Arguments.of("/api/promociones", "post", "PromocionRequest"), Arguments.of("/api/promociones/{id}", "put", "PromocionRequest"));
+    }
+
+    private RequestPostProcessor adminBearer() throws Exception {
+        String body = mockMvc.perform(post("/auth/login").contentType("application/json")
+                        .content("{\"username\":\"" + ADMIN_USERNAME + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(body, "$.token");
+        return request -> { request.addHeader("Authorization", "Bearer " + token); return request; };
     }
 
     private static Arguments op(String path, String method, String status, String mediaType, String schema) {

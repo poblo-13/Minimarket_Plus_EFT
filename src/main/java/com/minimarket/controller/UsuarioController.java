@@ -20,6 +20,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,7 +49,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @Validated
-@RequestMapping("/api/usuarios")
+@RequestMapping(value = "/api/usuarios", produces = MediaTypes.HAL_JSON_VALUE)
 @Tag(name = "Usuarios", description = "User administration endpoints")
 @SecurityRequirement(name = "bearerAuth")
 public class UsuarioController {
@@ -64,7 +68,7 @@ public class UsuarioController {
     @GetMapping
     @Operation(summary = "List users", description = "Requires Bearer JWT authentication.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "HAL user collection"),
+            @ApiResponse(responseCode = "200", description = "HAL user collection", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CollectionModel.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class)))
     })
@@ -79,7 +83,7 @@ public class UsuarioController {
     @GetMapping("/{id}")
     @Operation(summary = "Get a user", description = "Requires Bearer JWT authentication.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "HAL user resource"),
+            @ApiResponse(responseCode = "200", description = "HAL user resource", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = UsuarioResponse.class))),
             @ApiResponse(responseCode = "400", description = "The identifier must be positive",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
@@ -90,14 +94,14 @@ public class UsuarioController {
     public ResponseEntity<EntityModel<UsuarioResponse>> obtenerUsuarioPorId(
             @PathVariable @Positive Long id) {
         return usuarioService.findById(id).map(usuario -> ResponseEntity.ok(toModel(usuario)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseGet(() -> notFound("Usuario no encontrado"));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Create a user", description = "Requires Bearer JWT authentication. Password is stored as a hash.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "User created; Location identifies the new resource"),
+            @ApiResponse(responseCode = "201", description = "User created; Location identifies the new resource", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = UsuarioResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request or an unknown role identifier",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
@@ -125,7 +129,7 @@ public class UsuarioController {
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Update a user", description = "Requires Bearer JWT authentication. Omitted password and role identifiers retain their current values.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Updated HAL user resource"),
+            @ApiResponse(responseCode = "200", description = "Updated HAL user resource", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = UsuarioResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request or an unknown role identifier",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
@@ -142,7 +146,7 @@ public class UsuarioController {
                                                                             @Valid @RequestBody UsuarioUpdateRequest request) {
         Optional<Usuario> existente = usuarioService.findById(id);
         if (existente.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            return notFound("Usuario no encontrado");
         }
 
         Usuario usuario = existente.get();
@@ -174,7 +178,7 @@ public class UsuarioController {
     })
     public ResponseEntity<Void> eliminarUsuario(@PathVariable @Positive Long id) {
         if (usuarioService.findById(id).isEmpty()) {
-            return ResponseEntity.notFound().build();
+            return (ResponseEntity) notFound("Usuario no encontrado");
         }
         usuarioService.deleteById(id);
         return ResponseEntity.noContent().build();
@@ -195,5 +199,11 @@ public class UsuarioController {
         UsuarioResponse response = new UsuarioResponse(usuario.getId(), usuario.getUsername(), rolIds);
         return EntityModel.of(response,
                 linkTo(methodOn(UsuarioController.class).obtenerUsuarioPorId(usuario.getId())).withSelfRel());
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ResponseEntity<EntityModel<UsuarioResponse>> notFound(String detail) {
+        return (ResponseEntity) ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, detail));
     }
 }

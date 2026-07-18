@@ -16,7 +16,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +30,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@RequestMapping("/api/categorias")
+@RequestMapping(value = "/api/categorias", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Categorias")
 @SecurityRequirement(name = "bearerAuth")
@@ -38,7 +41,7 @@ public class CategoriaController {
     @Operation(summary = "Listar categorías")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Colección HAL de categorías.", content = @Content(
-                    mediaType = "application/hal+json", schema = @Schema(implementation = CategoriaResponse.class))),
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CollectionModel.class))),
             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
@@ -49,13 +52,13 @@ public class CategoriaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una categoría")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Categoría HAL", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CategoriaResponse.class))), @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Categoría no encontrada", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public ResponseEntity<EntityModel<CategoriaResponse>> obtenerCategoriaPorId(@PathVariable Long id) {
         Categoria categoria = categoriaService.findById(id);
-        return categoria == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(resource(categoria));
+        return categoria == null ? notFound("Categoría no encontrada") : ResponseEntity.ok(resource(categoria));
     }
 
     @PostMapping
@@ -99,7 +102,7 @@ public class CategoriaController {
                     mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CategoriaRequest.class)))
             @Valid @RequestBody CategoriaRequest request) {
         Categoria categoria = categoriaService.findById(id);
-        if (categoria == null) return ResponseEntity.notFound().build();
+        if (categoria == null) return notFound("Categoría no encontrada");
         categoria.setNombre(request.nombre());
         return ResponseEntity.ok(resource(categoriaService.save(categoria)));
     }
@@ -115,7 +118,7 @@ public class CategoriaController {
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
     public ResponseEntity<Void> eliminarCategoria(@PathVariable Long id) {
-        if (categoriaService.findById(id) == null) return ResponseEntity.notFound().build();
+        if (categoriaService.findById(id) == null) return (ResponseEntity) ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Categoría no encontrada"));
         categoriaService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
@@ -125,5 +128,11 @@ public class CategoriaController {
                 linkTo(methodOn(CategoriaController.class).obtenerCategoriaPorId(categoria.getId())).withSelfRel(),
                 linkTo(methodOn(CategoriaController.class).listarCategorias()).withRel("categorias"),
                 linkTo(methodOn(ProductoController.class).listarProductos()).withRel("productos"));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ResponseEntity<EntityModel<CategoriaResponse>> notFound(String detail) {
+        return (ResponseEntity) ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, detail));
     }
 }
