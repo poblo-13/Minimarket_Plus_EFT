@@ -6,11 +6,17 @@ import com.minimarket.entity.DetalleVenta;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
 import com.minimarket.entity.Venta;
+import com.minimarket.pedido.domain.DetallePedido;
+import com.minimarket.pedido.domain.Pedido;
+import com.minimarket.promocion.PromocionService;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.repository.VentaRepository;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.VentaService;
+import com.minimarket.sucursal.StockSucursalService;
+import com.minimarket.sucursal.Sucursal;
+import com.minimarket.sucursal.SucursalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +36,9 @@ public class VentaServiceImpl implements VentaService {
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
     private final InventarioService inventarioService;
+    private final SucursalRepository sucursalRepository;
+    private final StockSucursalService stockSucursalService;
+    private final PromocionService promocionService;
 
     @Override
     public List<Venta> findAll() {
@@ -45,6 +54,8 @@ public class VentaServiceImpl implements VentaService {
     @Transactional
     public Venta registrar(VentaRequest request) {
         Usuario usuario = usuarioRepository.findById(request.usuarioId()).orElseThrow(NoSuchElementException::new);
+        Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
+                .orElseThrow(() -> new NoSuchElementException("Sucursal no encontrada"));
         Map<Long, Integer> lineas = aggregate(request.lineas());
         LocalDateTime fecha = LocalDateTime.now();
         Map<Long, Producto> productosBloqueados = new TreeMap<>();
@@ -56,6 +67,7 @@ public class VentaServiceImpl implements VentaService {
 
         Venta venta = new Venta();
         venta.setUsuario(usuario);
+        venta.setSucursal(sucursal);
         venta.setFecha(fecha);
         List<DetalleVenta> detalles = new ArrayList<>();
         for (Long productoId : lineas.keySet()) {
@@ -64,16 +76,41 @@ public class VentaServiceImpl implements VentaService {
             detalle.setVenta(venta);
             detalle.setProducto(producto);
             detalle.setCantidad(lineas.get(productoId));
-            detalle.setPrecio(producto.getPrecio());
+            detalle.setPrecio(promocionService.calcularPrecioEfectivo(productoId, fecha.toLocalDate()).doubleValue());
             detalles.add(detalle);
         }
         venta.setDetalles(detalles);
         Venta saved = ventaRepository.save(venta);
 
         for (DetalleVenta detalle : saved.getDetalles()) {
-            inventarioService.registrarSalidaVenta(detalle.getProducto(), detalle.getCantidad(), fecha, saved);
+            stockSucursalService.descontarParaVenta(sucursal.getId(), detalle.getProducto().getId(), detalle.getCantidad(), saved, fecha);
         }
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public Venta registrarDesdePedido(Pedido pedido, Map<Long, Producto> productosBloqueados) {
+        Venta venta = new Venta();
+        venta.setUsuario(pedido.getUsuario());
+        venta.setSucursal(sucursalRepository.findById(pedido.getSucursalId())
+                .orElseThrow(() -> new NoSuchElementException("Sucursal no encontrada")));
+        venta.setFecha(LocalDateTime.now());
+        List<DetalleVenta> detalles = new ArrayList<>();
+        for (DetallePedido detallePedido : pedido.getDetalles()) {
+            Producto producto = productosBloqueados.get(detallePedido.getProducto().getId());
+            if (producto == null) {
+                throw new IllegalStateException("El producto del pedido no está bloqueado");
+            }
+            DetalleVenta detalleVenta = new DetalleVenta();
+            detalleVenta.setVenta(venta);
+            detalleVenta.setProducto(producto);
+            detalleVenta.setCantidad(detallePedido.getCantidad());
+            detalleVenta.setPrecio(detallePedido.getPrecioUnitario().doubleValue());
+            detalles.add(detalleVenta);
+        }
+        venta.setDetalles(detalles);
+        return ventaRepository.save(venta);
     }
 
     @Override

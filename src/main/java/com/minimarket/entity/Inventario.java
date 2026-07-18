@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.time.LocalDateTime;
+import com.minimarket.sucursal.Sucursal;
 
 @Entity
 public class Inventario {
@@ -36,6 +37,11 @@ public class Inventario {
     @ManyToOne
     @JoinColumn(name = "venta_id")
     private Venta venta;
+
+    /** Sucursal cuya existencia operativa fue afectada; Producto.stock es sólo legado. */
+    @ManyToOne
+    @JoinColumn(name = "sucursal_id")
+    private Sucursal sucursal;
 
     // Getters y Setters
     public Long getId() {
@@ -81,4 +87,6 @@ public class Inventario {
     public Venta getVenta() { return venta; }
 
     public void setVenta(Venta venta) { this.venta = venta; }
+    public Sucursal getSucursal() { return sucursal; }
+    public void setSucursal(Sucursal sucursal) { this.sucursal = sucursal; }
 }

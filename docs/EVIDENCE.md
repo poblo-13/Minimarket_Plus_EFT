@@ -5,8 +5,9 @@ Esta evidencia fue observada en la ejecución clean-room S8. Los resultados sigu
 ## Evidencia estática revisada
 
 - [x] `pom.xml` declara Java 21, Spring HATEOAS y `springdoc-openapi-starter-webmvc-ui` 2.7.0.
-- [x] `SecurityConfig` permite `/public/**`, `/swagger-ui/**`, `/swagger-ui.html` y `/v3/api-docs/**`; el resto exige autenticación HTTP Basic y no usa inicio de sesión por formulario.
-- [x] `OpenApiConfig` registra el esquema `basicAuth` de tipo HTTP con esquema `basic`.
+- [x] `SecurityConfig` permite `/public/**`, `/auth/**`, `/swagger-ui/**`, `/swagger-ui.html` y `/v3/api-docs/**`; las rutas protegidas usan Bearer JWT y no hay inicio de sesión por formulario.
+- [x] `OpenApiConfig` registra el esquema `bearerAuth` de tipo HTTP con esquema `bearer` y formato JWT.
+- [x] `POST /auth/login` autentica credenciales y entrega el token JWT que se envía como `Authorization: Bearer <token>`; `JWT_SECRET` debe estar configurado para firmarlo y validarlo.
 - [x] Los ocho controladores REST bajo `src/main/java/com/minimarket/controller` sustentan el inventario de `docs/API.md`.
 - [x] Los DTO, enlaces HATEOAS y el manejador `ApiExceptionHandler` sustentan los contratos descritos.
 

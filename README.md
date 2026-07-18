@@ -7,16 +7,19 @@ Backend REST para la gestión de un minimarket. Esta entrega documenta la implem
 - Java 21
 - Spring Boot 3.4.1
 - Maven Wrapper (`mvnw`)
-- Spring Security con HTTP Basic
+- Spring Security con Bearer JWT
 - Spring HATEOAS y springdoc OpenAPI
 
 Ejecutar la aplicación:
 
 ```bash
+export JWT_SECRET='una_clave_secreta_larga_y_segura'
 bash ./mvnw spring-boot:run
 ```
 
 La URL base local es `http://localhost:8080` salvo que la configuración de Spring la cambie.
+
+`JWT_SECRET` es obligatorio para firmar y validar los tokens JWT. No incluya su valor real en el repositorio, documentación ni registros.
 
 ## Documentación OpenAPI
 
@@ -29,7 +32,7 @@ Ambas rutas son públicas según la configuración de seguridad y fueron verific
 
 ## Seguridad
 
-`GET /public/hola` es el único endpoint funcional público. El resto requiere autenticación HTTP Basic; las credenciales inválidas o ausentes reciben un problema `401` y el reto `WWW-Authenticate: Basic realm="minimarket"`.
+`GET /public/hola` y `POST /auth/login` son endpoints públicos. Envíe las credenciales a `/auth/login` para obtener un token JWT y utilícelo en las rutas protegidas con el encabezado `Authorization: Bearer <token>`. Las credenciales inválidas en el inicio de sesión o un token ausente o inválido en una ruta protegida reciben `401`.
 
 Las restricciones por rol implementadas son:
 

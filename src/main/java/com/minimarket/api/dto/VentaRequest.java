@@ -9,4 +9,10 @@ import java.util.List;
 /** Entrada del cliente para el comando agregado de venta. Los precios y las marcas de tiempo pertenecen al servidor. */
 public record VentaRequest(
         @NotNull @Positive Long usuarioId,
-        @NotEmpty List<@Valid LineaVentaRequest> lineas) { }
+        @NotNull @Positive Long sucursalId,
+        @NotEmpty List<@Valid LineaVentaRequest> lineas) {
+    /** Compatibility constructor; new direct-sale flows must provide a sucursalId. */
+    public VentaRequest(Long usuarioId, List<LineaVentaRequest> lineas) {
+        this(usuarioId, null, lineas);
+    }
+}

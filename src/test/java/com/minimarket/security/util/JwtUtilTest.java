@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import io.jsonwebtoken.JwtException;
 
 import java.util.ArrayList;
 
@@ -16,7 +17,7 @@ public class JwtUtilTest {
 
     @BeforeEach
     public void setUp() {
-        jwtUtil = new JwtUtil();
+        jwtUtil = new JwtUtil("test-secret-with-at-least-thirty-two-utf8-bytes", 3_600_000);
         userDetails = new User("goleador_admin", "clave123", new ArrayList<>());
     }
 
@@ -29,5 +30,24 @@ public class JwtUtilTest {
         assertNotNull(token);
         assertTrue(jwtUtil.validateToken(token, userDetails));
         assertEquals("goleador_admin", jwtUtil.extractUsername(token));
+    }
+
+    @Test
+    void rejectsShortSecretsAndNonPositiveExpiration() {
+        assertThrows(IllegalStateException.class, () -> new JwtUtil("short", 1));
+        assertThrows(IllegalStateException.class,
+                () -> new JwtUtil("test-secret-with-at-least-thirty-two-utf8-bytes", 0));
+    }
+
+    @Test
+    void rejectsSignatureWhoseDecodedBytesActuallyChange() {
+        String token = jwtUtil.generateToken(userDetails);
+        String[] segments = token.split("\\.");
+        String signature = segments[2];
+        char replacement = signature.charAt(0) == 'A' ? 'B' : 'A';
+        String manipulated = segments[0] + "." + segments[1] + "." + replacement + signature.substring(1);
+
+        assertNotEquals(token, manipulated);
+        assertThrows(JwtException.class, () -> jwtUtil.extractUsername(manipulated));
     }
 }

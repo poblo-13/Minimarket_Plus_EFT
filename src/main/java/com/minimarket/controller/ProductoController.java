@@ -8,6 +8,7 @@ import com.minimarket.entity.Producto;
 import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.CategoriaService;
 import com.minimarket.service.ProductoService;
+import com.minimarket.promocion.PromocionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -47,17 +48,19 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequestMapping(value = "/api/productos", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Productos", description = "Catálogo de productos en formato HAL.")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class ProductoController {
 
     private final ProductoService productoService;
     private final CategoriaService categoriaService;
+    private final PromocionService promocionService;
 
     @GetMapping
-    @Operation(summary = "Lista productos", description = "Requiere autenticación HTTP Basic.")
+    @Operation(summary = "Lista productos", description = "Requiere autenticación Bearer JWT.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Colección HAL de productos."),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.",
+            @ApiResponse(responseCode = "200", description = "Colección HAL de productos.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
@@ -70,13 +73,14 @@ public class ProductoController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Obtiene un producto", description = "Requiere autenticación HTTP Basic.")
+    @Operation(summary = "Obtiene un producto", description = "Requiere autenticación Bearer JWT.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Recurso HAL del producto."),
+            @ApiResponse(responseCode = "200", description = "Recurso HAL del producto.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "400", description = "ID inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Producto inexistente; error RFC 9457.", content = @Content(
@@ -90,13 +94,14 @@ public class ProductoController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Crea un producto", description = "Requiere HTTP Basic con rol ADMIN.")
+    @Operation(summary = "Crea un producto", description = "Requiere Bearer JWT con rol ADMIN.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Producto creado; Location apunta al enlace self."),
+            @ApiResponse(responseCode = "201", description = "Producto creado; Location apunta al enlace self.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Cuerpo inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene rol ADMIN; error RFC 9457.", content = @Content(
@@ -106,7 +111,10 @@ public class ProductoController {
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
-    public ResponseEntity<EntityModel<ProductoResponse>> guardarProducto(@Valid @RequestBody ProductoRequest request) {
+    public ResponseEntity<EntityModel<ProductoResponse>> guardarProducto(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ProductoRequest.class)))
+            @Valid @org.springframework.web.bind.annotation.RequestBody ProductoRequest request) {
         Producto saved = productoService.save(newProduct(request, requireCategory(request.categoriaId())));
         EntityModel<ProductoResponse> model = toModel(saved);
         URI location = model.getRequiredLink("self").toUri();
@@ -115,12 +123,15 @@ public class ProductoController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Actualiza un producto", description = "Requiere HTTP Basic con rol ADMIN.")
+    @Operation(summary = "Actualiza un producto", description = "Requiere Bearer JWT con rol ADMIN.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductoRequest.class))))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Producto actualizado en formato HAL."),
+            @ApiResponse(responseCode = "200", description = "Producto actualizado en formato HAL.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "400", description = "ID o cuerpo inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene rol ADMIN; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -136,12 +147,12 @@ public class ProductoController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Elimina un producto", description = "Requiere HTTP Basic con rol ADMIN.")
+    @Operation(summary = "Elimina un producto", description = "Requiere Bearer JWT con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Producto eliminado."),
             @ApiResponse(responseCode = "400", description = "ID inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene rol ADMIN; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -183,10 +194,18 @@ public class ProductoController {
     }
 
     private EntityModel<ProductoResponse> toModel(Producto producto) {
-        ProductoResponse response = ResourceMapper.toResponse(producto);
+        ProductoResponse response = ResourceMapper.toResponse(producto, precioEfectivo(producto));
         return EntityModel.of(response,
                 linkTo(methodOn(ProductoController.class).obtenerProductoPorId(producto.getId())).withSelfRel(),
                 linkTo(methodOn(ProductoController.class).listarProductos()).withRel("collection"),
                 linkTo(CategoriaController.class).slash(producto.getCategoria().getId()).withRel("categoria"));
+    }
+
+    private java.math.BigDecimal precioEfectivo(Producto producto) {
+        if (promocionService == null) {
+            return java.math.BigDecimal.valueOf(producto.getPrecio());
+        }
+        java.math.BigDecimal precio = promocionService.calcularPrecioEfectivo(producto.getId(), java.time.LocalDate.now());
+        return precio == null ? java.math.BigDecimal.valueOf(producto.getPrecio()) : precio;
     }
 }

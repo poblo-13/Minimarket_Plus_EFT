@@ -7,6 +7,7 @@ import com.minimarket.entity.Producto;
 import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
+import com.minimarket.sucursal.SucursalRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,6 +20,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -37,20 +39,21 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@RequestMapping("/api/inventario")
+@RequestMapping(value = "/api/inventario", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Inventario", description = "Movimientos de inventario")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class InventarioController {
 
     private final InventarioService inventarioService;
     private final ProductoService productoService;
+    private final SucursalRepository sucursalRepository;
 
     @GetMapping
     @Operation(summary = "Listar movimientos de inventario")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Movimientos encontrados"),
+            @ApiResponse(responseCode = "200", description = "Movimientos encontrados", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CollectionModel.class))),
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public CollectionModel<EntityModel<InventarioResponse>> listarMovimientosDeInventario() {
@@ -64,7 +67,7 @@ public class InventarioController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtener un movimiento de inventario")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Movimiento encontrado"),
+            @ApiResponse(responseCode = "200", description = "Movimiento encontrado", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = InventarioResponse.class))),
             @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Movimiento no encontrado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
@@ -77,7 +80,7 @@ public class InventarioController {
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Registrar un movimiento de inventario")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Movimiento creado"),
+            @ApiResponse(responseCode = "201", description = "Movimiento creado", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = InventarioResponse.class))),
              @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -106,6 +109,8 @@ public class InventarioController {
             throw new NoSuchElementException("Producto no encontrado");
         }
         movement.setProducto(product);
+        movement.setSucursal(sucursalRepository.findById(request.sucursalId())
+                .orElseThrow(() -> new NoSuchElementException("Sucursal no encontrada")));
         movement.setCantidad(request.cantidad());
         movement.setTipoMovimiento(request.tipoMovimiento());
         movement.setFechaMovimiento(LocalDateTime.now());

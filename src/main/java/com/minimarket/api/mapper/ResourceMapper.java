@@ -19,6 +19,10 @@ public final class ResourceMapper {
                 id(value.getCategoria()));
     }
 
+    public static ProductoResponse toResponse(Producto value, BigDecimal precioEfectivo) {
+        return new ProductoResponse(value.getId(), value.getNombre(), precioEfectivo, value.getStock(), id(value.getCategoria()));
+    }
+
     public static InventarioResponse toResponse(Inventario value) {
         return new InventarioResponse(value.getId(), id(value.getProducto()), value.getCantidad(),
                 value.getTipoMovimiento(), value.getFechaMovimiento());

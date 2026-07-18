@@ -16,7 +16,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,18 +30,21 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@RequestMapping("/api/categorias")
+@RequestMapping(value = "/api/categorias", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Categorias")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "bearerAuth")
 public class CategoriaController {
     private final CategoriaService categoriaService;
 
     @GetMapping
     @Operation(summary = "Listar categorías")
-    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
-            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                    schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Colección HAL de categorías.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CollectionModel.class))),
+            @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
+                    content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public CollectionModel<EntityModel<CategoriaResponse>> listarCategorias() {
         List<EntityModel<CategoriaResponse>> resources = categoriaService.findAll().stream().map(this::resource).toList();
         return CollectionModel.of(resources, linkTo(methodOn(CategoriaController.class).listarCategorias()).withSelfRel());
@@ -46,28 +52,31 @@ public class CategoriaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una categoría")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Categoría HAL", content = @Content(mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = CategoriaResponse.class))), @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
+            @ApiResponse(responseCode = "404", description = "Categoría no encontrada", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public ResponseEntity<EntityModel<CategoriaResponse>> obtenerCategoriaPorId(@PathVariable Long id) {
         Categoria categoria = categoriaService.findById(id);
-        return categoria == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(resource(categoria));
+        return categoria == null ? notFound("Categoría no encontrada") : ResponseEntity.ok(resource(categoria));
     }
 
     @PostMapping
     @Operation(summary = "Crear una categoría")
-    @ApiResponses({@ApiResponse(responseCode = "201", description = "Categoría creada"),
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Categoría creada", content = @Content(mediaType = "application/hal+json", schema = @Schema(implementation = CategoriaResponse.class))),
              @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
-    public ResponseEntity<EntityModel<CategoriaResponse>> guardarCategoria(@Valid @RequestBody CategoriaRequest request) {
+    public ResponseEntity<EntityModel<CategoriaResponse>> guardarCategoria(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CategoriaRequest.class)))
+            @Valid @RequestBody CategoriaRequest request) {
         Categoria categoria = new Categoria();
         categoria.setNombre(request.nombre());
         Categoria saved = categoriaService.save(categoria);
@@ -77,20 +86,23 @@ public class CategoriaController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar una categoría")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Categoría actualizada"),
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Categoría actualizada", content = @Content(mediaType = "application/hal+json", schema = @Schema(implementation = CategoriaResponse.class))),
              @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
-    public ResponseEntity<EntityModel<CategoriaResponse>> actualizarCategoria(@PathVariable Long id, @Valid @RequestBody CategoriaRequest request) {
+    public ResponseEntity<EntityModel<CategoriaResponse>> actualizarCategoria(@PathVariable Long id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CategoriaRequest.class)))
+            @Valid @RequestBody CategoriaRequest request) {
         Categoria categoria = categoriaService.findById(id);
-        if (categoria == null) return ResponseEntity.notFound().build();
+        if (categoria == null) return notFound("Categoría no encontrada");
         categoria.setNombre(request.nombre());
         return ResponseEntity.ok(resource(categoriaService.save(categoria)));
     }
@@ -98,7 +110,7 @@ public class CategoriaController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar una categoría")
     @ApiResponses({@ApiResponse(responseCode = "204", description = "Categoría eliminada"),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
@@ -106,7 +118,7 @@ public class CategoriaController {
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
     public ResponseEntity<Void> eliminarCategoria(@PathVariable Long id) {
-        if (categoriaService.findById(id) == null) return ResponseEntity.notFound().build();
+        if (categoriaService.findById(id) == null) return (ResponseEntity) ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Categoría no encontrada"));
         categoriaService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
@@ -116,5 +128,11 @@ public class CategoriaController {
                 linkTo(methodOn(CategoriaController.class).obtenerCategoriaPorId(categoria.getId())).withSelfRel(),
                 linkTo(methodOn(CategoriaController.class).listarCategorias()).withRel("categorias"),
                 linkTo(methodOn(ProductoController.class).listarProductos()).withRel("productos"));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ResponseEntity<EntityModel<CategoriaResponse>> notFound(String detail) {
+        return (ResponseEntity) ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, detail));
     }
 }

@@ -1,5 +1,6 @@
 package com.minimarket.entity;
 
+import com.minimarket.sucursal.Sucursal;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -23,6 +24,10 @@ public class Venta {
     @Column(nullable = false)
     @NotNull(message = "La fecha es obligatoria")
     private LocalDateTime fecha;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "sucursal_id", nullable = false)
+    private Sucursal sucursal;
 
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL)
     @NotEmpty(message = "La venta debe tener al menos un detalle")
@@ -64,6 +69,8 @@ public class Venta {
     public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
     }
+    public Sucursal getSucursal() { return sucursal; }
+    public void setSucursal(Sucursal sucursal) { this.sucursal = sucursal; }
 
     public List<DetalleVenta> getDetalles() {
         return detalles;

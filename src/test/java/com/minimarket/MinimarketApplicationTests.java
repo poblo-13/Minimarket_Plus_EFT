@@ -13,8 +13,8 @@ class MinimarketApplicationTests {
 
     @Test
     void main() {
-        // Ejecuta el método main para cubrir esa línea específica en JaCoCo
-        MinimarketApplication.main(new String[]{});
+        // Ejecuta main sin servidor web: no depende del puerto 8080 del entorno.
+        MinimarketApplication.main(new String[]{"--spring.main.web-application-type=none", "--app.seed.enabled=false"});
     }
 
 }

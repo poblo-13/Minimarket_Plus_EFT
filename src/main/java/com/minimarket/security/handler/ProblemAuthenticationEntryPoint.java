@@ -34,7 +34,7 @@ public class ProblemAuthenticationEntryPoint implements AuthenticationEntryPoint
         problem.setProperty("path", request.getRequestURI());
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Basic realm=\"minimarket\"");
+        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"minimarket\"");
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), problem);
     }
