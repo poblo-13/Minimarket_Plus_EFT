@@ -14,4 +14,5 @@ public interface PedidoService {
     Pedido cambiarEstado(Long pedidoId, EstadoPedido nuevoEstado);
     Pedido obtenerParaCliente(Long pedidoId, String usernameCliente);
     List<Pedido> listarParaCliente(String usernameCliente);
+    List<Pedido> listarOperativos(EstadoPedido estado, Long sucursalId);
 }

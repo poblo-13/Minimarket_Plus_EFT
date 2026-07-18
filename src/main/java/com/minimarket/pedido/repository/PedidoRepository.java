@@ -1,6 +1,7 @@
 package com.minimarket.pedido.repository;
 
 import com.minimarket.pedido.domain.Pedido;
+import com.minimarket.pedido.domain.EstadoPedido;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -10,6 +11,9 @@ import java.util.List;
 
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByUsuarioId(Long usuarioId);
+    List<Pedido> findByEstado(EstadoPedido estado);
+    List<Pedido> findBySucursalId(Long sucursalId);
+    List<Pedido> findByEstadoAndSucursalId(EstadoPedido estado, Long sucursalId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select distinct pedido from Pedido pedido left join fetch pedido.detalles where pedido.id = :pedidoId")

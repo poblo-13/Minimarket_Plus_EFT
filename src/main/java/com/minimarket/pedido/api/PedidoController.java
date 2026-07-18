@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -61,6 +62,17 @@ public class PedidoController {
                                                                Authentication authentication) {
         EntityModel<PedidoResponse> resource = resource(pedidoService.crear(authentication.getName(), request), authentication);
         return ResponseEntity.created(resource.getRequiredLink("self").toUri()).body(resource);
+    }
+
+    @GetMapping
+    public CollectionModel<EntityModel<PedidoResponse>> listarOperativos(
+            @RequestParam(required = false) EstadoPedido estado,
+            @RequestParam(required = false) Long sucursalId,
+            Authentication authentication) {
+        List<EntityModel<PedidoResponse>> resources = pedidoService.listarOperativos(estado, sucursalId).stream()
+                .map(pedido -> resource(pedido, authentication)).toList();
+        return CollectionModel.of(resources,
+                linkTo(methodOn(PedidoController.class).listarOperativos(null, null, null)).withSelfRel());
     }
 
     @GetMapping("/mis-pedidos")
