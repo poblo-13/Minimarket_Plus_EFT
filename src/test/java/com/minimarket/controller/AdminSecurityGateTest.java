@@ -1,6 +1,7 @@
 package com.minimarket.controller;
 
 import com.minimarket.abastecimiento.OrdenCompraConsultaService;
+import com.minimarket.abastecimiento.OrdenCompraRepository;
 import com.minimarket.abastecimiento.api.AdministracionAbastecimientoController;
 import com.minimarket.abastecimiento.api.OrdenCompraController;
 import com.minimarket.abastecimiento.api.OrdenCompraResponseAssembler;
@@ -47,6 +48,7 @@ class AdminSecurityGateTest {
     @MockBean PromocionService promocionService;
     @MockBean RotacionService rotacionService;
     @MockBean OrdenCompraConsultaService ordenCompraConsultaService;
+    @MockBean OrdenCompraRepository ordenCompraRepository;
     @MockBean OrdenCompraResponseAssembler ordenCompraResponseAssembler;
     @MockBean CustomUserDetailsService customUserDetailsService;
     @MockBean JwtUtil jwtUtil;

@@ -34,6 +34,7 @@ import com.minimarket.sucursal.api.SucursalController;
 import com.minimarket.sucursal.api.SucursalResponseAssembler;
 import com.minimarket.sucursal.api.DisponibilidadResponseAssembler;
 import com.minimarket.abastecimiento.OrdenCompraConsultaService;
+import com.minimarket.abastecimiento.OrdenCompraRepository;
 import com.minimarket.abastecimiento.api.OrdenCompraController;
 import com.minimarket.abastecimiento.api.OrdenCompraResponseAssembler;
 
@@ -74,6 +75,7 @@ class SecurityMutationAccessTest {
     @MockBean private SucursalResponseAssembler sucursalResponseAssembler;
     @MockBean private DisponibilidadResponseAssembler disponibilidadResponseAssembler;
     @MockBean private OrdenCompraConsultaService ordenCompraConsultaService;
+    @MockBean private OrdenCompraRepository ordenCompraRepository;
     @MockBean private OrdenCompraResponseAssembler ordenCompraResponseAssembler;
 
     @Test
