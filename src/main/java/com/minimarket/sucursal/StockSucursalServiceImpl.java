@@ -5,6 +5,7 @@ import com.minimarket.abastecimiento.OrdenCompraRepository;
 import com.minimarket.abastecimiento.EstadoOrdenCompra;
 import com.minimarket.abastecimiento.Proveedor;
 import com.minimarket.abastecimiento.ProveedorRepository;
+import com.minimarket.repository.ProductoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,20 @@ public class StockSucursalServiceImpl implements StockSucursalService {
     private final StockSucursalRepository stockSucursalRepository;
     private final ProveedorRepository proveedorRepository;
     private final OrdenCompraRepository ordenCompraRepository;
+    private final SucursalRepository sucursalRepository;
+    private final ProductoRepository productoRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public StockSucursal consultarStock(Long sucursalId, Long productoId) {
+        verificarSucursalYProducto(sucursalId, productoId);
+        return buscarStock(sucursalId, productoId);
+    }
 
     @Override
     @Transactional(readOnly = true)
     public int consultarDisponibilidad(Long sucursalId, Long productoId) {
-        return buscarStock(sucursalId, productoId).getDisponible();
+        return consultarStock(sucursalId, productoId).getDisponible();
     }
 
     @Override
@@ -62,5 +72,14 @@ public class StockSucursalServiceImpl implements StockSucursalService {
     private StockSucursal buscarStockBloqueado(Long sucursalId, Long productoId) {
         return stockSucursalRepository.findBySucursalIdAndProductoIdForUpdate(sucursalId, productoId)
                 .orElseThrow(() -> new EntityNotFoundException("Stock de sucursal no encontrado"));
+    }
+
+    private void verificarSucursalYProducto(Long sucursalId, Long productoId) {
+        if (!sucursalRepository.existsById(sucursalId)) {
+            throw new EntityNotFoundException("Sucursal no encontrada: " + sucursalId);
+        }
+        if (!productoRepository.existsById(productoId)) {
+            throw new EntityNotFoundException("Producto no encontrado: " + productoId);
+        }
     }
 }
