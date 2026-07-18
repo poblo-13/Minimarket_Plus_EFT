@@ -8,6 +8,7 @@ import com.minimarket.entity.Producto;
 import com.minimarket.security.SecurityRoles;
 import com.minimarket.service.CategoriaService;
 import com.minimarket.service.ProductoService;
+import com.minimarket.promocion.PromocionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -52,6 +53,7 @@ public class ProductoController {
 
     private final ProductoService productoService;
     private final CategoriaService categoriaService;
+    private final PromocionService promocionService;
 
     @GetMapping
     @Operation(summary = "Lista productos", description = "Requiere autenticación Bearer JWT.")
@@ -192,10 +194,18 @@ public class ProductoController {
     }
 
     private EntityModel<ProductoResponse> toModel(Producto producto) {
-        ProductoResponse response = ResourceMapper.toResponse(producto);
+        ProductoResponse response = ResourceMapper.toResponse(producto, precioEfectivo(producto));
         return EntityModel.of(response,
                 linkTo(methodOn(ProductoController.class).obtenerProductoPorId(producto.getId())).withSelfRel(),
                 linkTo(methodOn(ProductoController.class).listarProductos()).withRel("collection"),
                 linkTo(CategoriaController.class).slash(producto.getCategoria().getId()).withRel("categoria"));
+    }
+
+    private java.math.BigDecimal precioEfectivo(Producto producto) {
+        if (promocionService == null) {
+            return java.math.BigDecimal.valueOf(producto.getPrecio());
+        }
+        java.math.BigDecimal precio = promocionService.calcularPrecioEfectivo(producto.getId(), java.time.LocalDate.now());
+        return precio == null ? java.math.BigDecimal.valueOf(producto.getPrecio()) : precio;
     }
 }

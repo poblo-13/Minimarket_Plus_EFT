@@ -24,8 +24,8 @@ class ReporteRotacionControllerTest {
     @Mock RotacionService service; @InjectMocks ReporteRotacionController controller; private MockMvc mvc;
     @BeforeEach void setup() { mvc = MockMvcBuilders.standaloneSetup(controller).build(); }
     @Test @WithMockUser(roles = "ADMIN") void entregaRotacionAgregada() throws Exception {
-        when(service.consultar(any(LocalDate.class), any(LocalDate.class))).thenReturn(List.of(new RotacionProductoResponse(1L, "Arroz", 4L, new BigDecimal("4000.00"))));
+        when(service.consultar(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of(new RotacionProductoResponse(1, 1L, "Arroz", 4L, new BigDecimal("4000.00"))));
         mvc.perform(get("/api/reportes/rotacion").param("desde", "2026-01-01").param("hasta", "2026-01-31"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].cantidadVendida").value(4)).andExpect(jsonPath("$[0].importeVendido").value(4000));
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].posicionRotacion").value(1)).andExpect(jsonPath("$[0].cantidadVendida").value(4)).andExpect(jsonPath("$[0].importeVendido").value(4000));
     }
 }

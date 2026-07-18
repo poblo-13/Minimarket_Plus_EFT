@@ -30,4 +30,18 @@ class PromocionServiceTest {
         PromocionRequest request = new PromocionRequest(1L, BigDecimal.TEN, BigDecimal.ONE, LocalDate.now(), LocalDate.now(), true);
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> service.crear(request));
     }
+    @Test void noDescuentaPromocionVencida() {
+        Producto producto = new Producto(); producto.setPrecio(1000D);
+        LocalDate hoy = LocalDate.now();
+        when(productos.findById(1L)).thenReturn(Optional.of(producto));
+        when(promociones.findByProductoIdAndActivaTrueAndInicioLessThanEqualAndFinGreaterThanEqual(1L, hoy, hoy)).thenReturn(List.of());
+        assertEquals(new BigDecimal("1000.00"), service.calcularPrecioEfectivo(1L, hoy));
+    }
+    @Test void noDescuentaPromocionInactiva() {
+        Producto producto = new Producto(); producto.setPrecio(1000D);
+        LocalDate hoy = LocalDate.now();
+        when(productos.findById(1L)).thenReturn(Optional.of(producto));
+        when(promociones.findByProductoIdAndActivaTrueAndInicioLessThanEqualAndFinGreaterThanEqual(1L, hoy, hoy)).thenReturn(List.of());
+        assertEquals(new BigDecimal("1000.00"), service.calcularPrecioEfectivo(1L, hoy));
+    }
 }

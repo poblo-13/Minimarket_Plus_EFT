@@ -10,6 +10,7 @@ import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
 import com.minimarket.pedido.integration.PedidoVentaIntegration;
 import com.minimarket.pedido.repository.PedidoRepository;
+import com.minimarket.promocion.PromocionService;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
@@ -30,15 +31,17 @@ public class PedidoServiceImpl implements PedidoService {
     private final ProductoRepository productoRepository;
     private final PedidoVentaIntegration pedidoVentaIntegration;
     private final SucursalRepository sucursalRepository;
+    private final PromocionService promocionService;
 
     public PedidoServiceImpl(PedidoRepository pedidoRepository, UsuarioRepository usuarioRepository,
                               ProductoRepository productoRepository, PedidoVentaIntegration pedidoVentaIntegration,
-                              SucursalRepository sucursalRepository) {
+                              SucursalRepository sucursalRepository, PromocionService promocionService) {
         this.pedidoRepository = pedidoRepository;
         this.usuarioRepository = usuarioRepository;
         this.productoRepository = productoRepository;
         this.pedidoVentaIntegration = pedidoVentaIntegration;
         this.sucursalRepository = sucursalRepository;
+        this.promocionService = promocionService;
     }
 
     @Override
@@ -152,7 +155,7 @@ public class PedidoServiceImpl implements PedidoService {
             DetallePedido detalle = new DetallePedido();
             detalle.setProducto(producto);
             detalle.setNombreProducto(producto.getNombre());
-            detalle.setPrecioUnitario(BigDecimal.valueOf(producto.getPrecio()).setScale(2, RoundingMode.HALF_UP));
+            detalle.setPrecioUnitario(precioEfectivo(producto));
             detalle.setCantidad(linea.cantidad());
             detalle.calcularSubtotal();
             pedido.agregarDetalle(detalle);
@@ -186,6 +189,13 @@ public class PedidoServiceImpl implements PedidoService {
 
     private void inicializarDetalles(Pedido pedido) {
         pedido.getDetalles().size();
+    }
+
+    private BigDecimal precioEfectivo(Producto producto) {
+        if (promocionService == null) {
+            return BigDecimal.valueOf(producto.getPrecio()).setScale(2, RoundingMode.HALF_UP);
+        }
+        return promocionService.calcularPrecioEfectivo(producto.getId(), java.time.LocalDate.now());
     }
 
     private boolean esTransicionValida(EstadoPedido actual, EstadoPedido nuevo) {

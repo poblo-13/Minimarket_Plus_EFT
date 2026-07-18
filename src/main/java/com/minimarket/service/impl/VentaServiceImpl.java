@@ -8,6 +8,7 @@ import com.minimarket.entity.Usuario;
 import com.minimarket.entity.Venta;
 import com.minimarket.pedido.domain.DetallePedido;
 import com.minimarket.pedido.domain.Pedido;
+import com.minimarket.promocion.PromocionService;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.repository.VentaRepository;
@@ -37,6 +38,7 @@ public class VentaServiceImpl implements VentaService {
     private final InventarioService inventarioService;
     private final SucursalRepository sucursalRepository;
     private final StockSucursalService stockSucursalService;
+    private final PromocionService promocionService;
 
     @Override
     public List<Venta> findAll() {
@@ -74,7 +76,7 @@ public class VentaServiceImpl implements VentaService {
             detalle.setVenta(venta);
             detalle.setProducto(producto);
             detalle.setCantidad(lineas.get(productoId));
-            detalle.setPrecio(producto.getPrecio());
+            detalle.setPrecio(promocionService.calcularPrecioEfectivo(productoId, fecha.toLocalDate()).doubleValue());
             detalles.add(detalle);
         }
         venta.setDetalles(detalles);

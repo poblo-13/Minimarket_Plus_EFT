@@ -26,5 +26,6 @@ public class ReporteRotacionController {
     @ApiResponses({@ApiResponse(responseCode = "200", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = RotacionProductoResponse.class))),
                    @ApiResponse(responseCode = "400", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))})
     public List<RotacionProductoResponse> consultar(@RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
-                                                    @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) { return service.consultar(desde, hasta); }
+                                                    @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                                                    @RequestParam(required = false) Long sucursalId) { return service.consultar(desde, hasta, sucursalId); }
 }
