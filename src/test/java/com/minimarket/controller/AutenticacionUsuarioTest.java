@@ -64,7 +64,8 @@ class AutenticacionUsuarioTest {
                 .andExpect(status().isUnauthorized());
 
         String token = login("admin", "admin123");
-        String manipulated = token.substring(0, token.length() - 1) + "x";
+        String manipulated = manipularPrimerCaracterDeFirma(token);
+        org.junit.jupiter.api.Assertions.assertNotEquals(token, manipulated);
         mockMvc.perform(get("/api/productos").header("Authorization", "Bearer " + manipulated))
                 .andExpect(status().isUnauthorized());
     }
@@ -156,5 +157,13 @@ class AutenticacionUsuarioTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString()
                 .replaceFirst(".*\"token\":\"([^\"]+)\".*", "$1");
+    }
+
+    private String manipularPrimerCaracterDeFirma(String token) {
+        String[] segmentos = token.split("\\.");
+        org.junit.jupiter.api.Assertions.assertEquals(3, segmentos.length);
+        String firma = segmentos[2];
+        char reemplazo = firma.charAt(0) == 'A' ? 'B' : 'A';
+        return segmentos[0] + "." + segmentos[1] + "." + reemplazo + firma.substring(1);
     }
 }

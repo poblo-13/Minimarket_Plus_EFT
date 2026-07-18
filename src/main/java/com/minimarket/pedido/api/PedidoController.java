@@ -49,7 +49,7 @@ public class PedidoController {
     }
 
     @PostMapping
-    @Operation(summary = "Crear pedido", description = "El cliente se obtiene del JWT; estado, precios y fechas los calcula el servidor.")
+    @Operation(summary = "Crear pedido", description = "El cliente se obtiene del JWT; estado, precios y fechas los calcula el servidor.", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CrearPedidoRequest.class))))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Pedido creado", content = @Content(mediaType = "application/hal+json", schema = @Schema(implementation = PedidoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -96,7 +96,7 @@ public class PedidoController {
     }
 
     @PatchMapping("/{id}/estado")
-    @Operation(summary = "Transicionar estado", description = "Endpoint preparado para protegerse con CAJERO/ADMIN. CANCELADO solo puede ejecutarlo el dueño mediante DELETE.")
+    @Operation(summary = "Transicionar estado", description = "Endpoint preparado para protegerse con CAJERO/ADMIN. CANCELADO solo puede ejecutarlo el dueño mediante DELETE.", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CambiarEstadoPedidoRequest.class))))
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Estado actualizado", content = @Content(mediaType = "application/hal+json", schema = @Schema(implementation = PedidoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Pedido inexistente", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),

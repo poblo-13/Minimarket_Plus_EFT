@@ -7,6 +7,8 @@ import com.minimarket.security.model.RegisterResponse;
 import com.minimarket.security.service.RegistrationService;
 import com.minimarket.security.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,9 +52,9 @@ public class AuthController {
             description = "Valida las credenciales y genera un token JWT"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Autenticación exitosa"),
-            @ApiResponse(responseCode = "400", description = "Datos de acceso inválidos"),
-            @ApiResponse(responseCode = "401", description = "Credenciales incorrectas")
+            @ApiResponse(responseCode = "200", description = "Autenticación exitosa", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JwtResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Datos de acceso inválidos", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "401", description = "Credenciales incorrectas", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
     public ResponseEntity<JwtResponse> login(
             @Valid @RequestBody LoginRequest loginRequest) {
@@ -85,6 +87,11 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Registrar usuario", description = "Crea una cuenta de cliente sin autenticación previa.", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "application/json", schema = @Schema(implementation = RegisterRequest.class))))
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Usuario registrado", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RegisterResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Nombre de usuario existente", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))})
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         Optional<RegisterResponse> response = registrationService.register(registerRequest);
         if (response.isPresent()) {
