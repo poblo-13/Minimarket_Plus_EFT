@@ -5,7 +5,8 @@ import com.minimarket.entity.DetalleVenta;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
 import com.minimarket.service.VentaService;
-import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.repository.VentaRepository;
+import com.minimarket.security.CurrentActorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,14 +21,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Arrays;
 import java.util.List;
 import java.time.LocalDateTime;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.authorization.AuthorizationDeniedException;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class VentaControllerTest {
@@ -36,7 +33,8 @@ public class VentaControllerTest {
 
     @Mock
     private VentaService ventaService;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private VentaRepository ventaRepository;
+    @Mock private CurrentActorService currentActor;
 
     @InjectMocks
     private VentaController ventaController;
@@ -67,11 +65,12 @@ public class VentaControllerTest {
         detalle.setCantidad(2);
         detalle.setPrecio(1500.0);
         ventaMock.setDetalles(List.of(detalle));
+        lenient().when(currentActor.isStaff()).thenReturn(true);
     }
 
     @Test
     public void testListarVentas() throws Exception {
-        when(ventaService.findAll()).thenReturn(Arrays.asList(ventaMock));
+        when(ventaRepository.findAll()).thenReturn(Arrays.asList(ventaMock));
 
         mockMvc.perform(get("/api/ventas"))
                 .andExpect(status().isOk())
@@ -80,7 +79,7 @@ public class VentaControllerTest {
 
     @Test
     public void testObtenerVentaPorId_Encontrado() throws Exception {
-        when(ventaService.findById(100L)).thenReturn(ventaMock);
+        when(ventaRepository.findById(100L)).thenReturn(java.util.Optional.of(ventaMock));
 
         mockMvc.perform(get("/api/ventas/100"))
                 .andExpect(status().isOk())
@@ -89,7 +88,7 @@ public class VentaControllerTest {
 
     @Test
     public void testObtenerVentaPorId_NoEncontrado() throws Exception {
-        when(ventaService.findById(99L)).thenReturn(null);
+        when(ventaRepository.findById(99L)).thenReturn(java.util.Optional.empty());
 
         mockMvc.perform(get("/api/ventas/99"))
                 .andExpect(status().isNotFound());
@@ -109,16 +108,11 @@ public class VentaControllerTest {
 
     @Test
     public void clienteNoPuedeLeerVentaDeOtroUsuario() {
-        Usuario owner = new Usuario();
-        owner.setId(2L);
-        owner.setUsername("owner");
-        ventaMock.setUsuario(owner);
-        when(ventaService.findById(100L)).thenReturn(ventaMock);
-        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("cliente", "", "ROLE_CLIENTE"));
-        try {
-            assertThrows(AuthorizationDeniedException.class, () -> ventaController.obtenerVentaPorId(100L));
-        } finally {
-            SecurityContextHolder.clearContext();
-        }
+        when(currentActor.isStaff()).thenReturn(false);
+        when(currentActor.userId()).thenReturn(1L);
+        when(ventaRepository.findByIdAndUsuarioId(100L, 1L)).thenReturn(java.util.Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertEquals(404,
+                ventaController.obtenerVentaPorId(100L).getStatusCode().value());
     }
 }

@@ -6,6 +6,8 @@ import com.minimarket.entity.Usuario;
 import com.minimarket.service.CarritoService;
 import com.minimarket.service.ProductoService;
 import com.minimarket.service.UsuarioService;
+import com.minimarket.repository.CarritoRepository;
+import com.minimarket.security.CurrentActorService;
 import com.minimarket.exception.ApiExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,8 @@ public class CarritoControllerTest {
     private CarritoService carritoService;
     @Mock private ProductoService productoService;
     @Mock private UsuarioService usuarioService;
+    @Mock private CarritoRepository carritoRepository;
+    @Mock private CurrentActorService currentActor;
 
     @InjectMocks
     private CarritoController carritoController;
@@ -66,11 +70,13 @@ public class CarritoControllerTest {
         Producto producto = new Producto(); producto.setId(1L); carritoMock.setProducto(producto);
         Usuario usuario = new Usuario(); usuario.setId(1L); carritoMock.setUsuario(usuario);
         lenient().when(usuarioService.findByUsername("cliente")).thenReturn(java.util.Optional.of(usuario));
+        lenient().when(currentActor.isStaff()).thenReturn(false);
+        lenient().when(currentActor.userId()).thenReturn(1L);
     }
 
     @Test
     public void testListarCarrito() throws Exception {
-        when(carritoService.findAll()).thenReturn(Arrays.asList(carritoMock));
+        when(carritoRepository.findByUsuarioId(1L)).thenReturn(Arrays.asList(carritoMock));
 
         // Simulamos un GET a /api/carrito
         mockMvc.perform(get("/api/carrito"))
@@ -80,7 +86,7 @@ public class CarritoControllerTest {
 
     @Test
     public void testObtenerCarritoPorId_Encontrado() throws Exception {
-        when(carritoService.findById(10L)).thenReturn(carritoMock);
+        when(carritoRepository.findByIdAndUsuarioId(10L, 1L)).thenReturn(java.util.Optional.of(carritoMock));
 
         // Simulamos un GET a /api/carrito/10
         mockMvc.perform(get("/api/carrito/10"))
@@ -90,7 +96,7 @@ public class CarritoControllerTest {
 
     @Test
     public void testObtenerCarritoPorId_NoEncontrado() throws Exception {
-        when(carritoService.findById(99L)).thenReturn(null);
+        when(carritoRepository.findByIdAndUsuarioId(99L, 1L)).thenReturn(java.util.Optional.empty());
 
         mockMvc.perform(get("/api/carrito/99"))
                 .andExpect(status().isNotFound()); // Esperamos un 404
@@ -112,7 +118,7 @@ public class CarritoControllerTest {
 
     @Test
     public void testActualizarCarrito_Encontrado() throws Exception {
-        when(carritoService.findById(10L)).thenReturn(carritoMock);
+        when(carritoRepository.findByIdAndUsuarioId(10L, 1L)).thenReturn(java.util.Optional.of(carritoMock));
         when(productoService.findById(1L)).thenReturn(carritoMock.getProducto());
         when(carritoService.save(any(Carrito.class))).thenReturn(carritoMock);
 
@@ -125,7 +131,7 @@ public class CarritoControllerTest {
 
     @Test
     public void testActualizarCarrito_NoEncontrado() throws Exception {
-        when(carritoService.findById(99L)).thenReturn(null);
+        when(carritoRepository.findByIdAndUsuarioId(99L, 1L)).thenReturn(java.util.Optional.empty());
 
         mockMvc.perform(put("/api/carrito/99")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -135,7 +141,7 @@ public class CarritoControllerTest {
 
     @Test
     public void testEliminarProductoDelCarrito_Encontrado() throws Exception {
-        when(carritoService.findById(10L)).thenReturn(carritoMock);
+        when(carritoRepository.findByIdAndUsuarioId(10L, 1L)).thenReturn(java.util.Optional.of(carritoMock));
 
         // Simulamos un DELETE
         mockMvc.perform(delete("/api/carrito/10"))
@@ -146,7 +152,7 @@ public class CarritoControllerTest {
 
     @Test
     public void testEliminarProductoDelCarrito_NoEncontrado() throws Exception {
-        when(carritoService.findById(99L)).thenReturn(null);
+        when(carritoRepository.findByIdAndUsuarioId(99L, 1L)).thenReturn(java.util.Optional.empty());
 
         mockMvc.perform(delete("/api/carrito/99"))
                 .andExpect(status().isNotFound());
@@ -154,13 +160,22 @@ public class CarritoControllerTest {
 
     @Test
     public void testObtenerCarritoDeOtroUsuario_DebeSerBloqueado() throws Exception {
-        Usuario otroUsuario = new Usuario();
-        otroUsuario.setId(2L);
-        carritoMock.setUsuario(otroUsuario);
-        when(carritoService.findById(10L)).thenReturn(carritoMock);
+        when(carritoRepository.findByIdAndUsuarioId(10L, 1L)).thenReturn(java.util.Optional.empty());
 
         mockMvc.perform(get("/api/carrito/10"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void segundoClienteSoloConsultaSuPropioCarritoEnRepositorio() throws Exception {
+        when(currentActor.userId()).thenReturn(2L);
+        when(carritoRepository.findByUsuarioId(2L)).thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/api/carrito"))
+                .andExpect(status().isOk());
+
+        verify(carritoRepository).findByUsuarioId(2L);
+        verify(carritoRepository, never()).findAll();
     }
 
     @Test

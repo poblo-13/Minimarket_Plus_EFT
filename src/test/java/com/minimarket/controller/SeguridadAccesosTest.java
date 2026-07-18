@@ -14,6 +14,8 @@ import com.minimarket.service.ProductoService;
 import com.minimarket.service.VentaService;
 import com.minimarket.service.CategoriaService;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.repository.VentaRepository;
+import com.minimarket.security.CurrentActorService;
 import com.minimarket.security.handler.ProblemAccessDeniedHandler;
 import com.minimarket.security.handler.ProblemAuthenticationEntryPoint;
 import org.junit.jupiter.api.Test;
@@ -63,6 +65,8 @@ public class SeguridadAccesosTest {
     private VentaService ventaService;
     @MockBean private CategoriaService categoriaService;
     @MockBean private UsuarioRepository usuarioRepository;
+    @MockBean private VentaRepository ventaRepository;
+    @MockBean private CurrentActorService currentActorService;
 
     @MockBean
     private CustomUserDetailsService customUserDetailsService;

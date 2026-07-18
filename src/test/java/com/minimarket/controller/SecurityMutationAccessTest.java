@@ -8,6 +8,8 @@ import com.minimarket.entity.Venta;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.RolRepository;
 import com.minimarket.repository.VentaRepository;
+import com.minimarket.repository.DetalleVentaRepository;
+import com.minimarket.security.CurrentActorService;
 import com.minimarket.security.config.SecurityConfig;
 import com.minimarket.security.handler.ProblemAccessDeniedHandler;
 import com.minimarket.security.handler.ProblemAuthenticationEntryPoint;
@@ -26,6 +28,14 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import com.minimarket.security.filter.JwtAuthenticationFilter;
 import com.minimarket.security.util.JwtUtil;
+import com.minimarket.sucursal.StockSucursalService;
+import com.minimarket.sucursal.SucursalRepository;
+import com.minimarket.sucursal.api.SucursalController;
+import com.minimarket.sucursal.api.SucursalResponseAssembler;
+import com.minimarket.sucursal.api.DisponibilidadResponseAssembler;
+import com.minimarket.abastecimiento.OrdenCompraConsultaService;
+import com.minimarket.abastecimiento.api.OrdenCompraController;
+import com.minimarket.abastecimiento.api.OrdenCompraResponseAssembler;
 
 import java.util.Optional;
 
@@ -34,9 +44,11 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({UsuarioController.class, DetalleVentaController.class, CategoriaController.class})
+@WebMvcTest({UsuarioController.class, DetalleVentaController.class, CategoriaController.class,
+        SucursalController.class, OrdenCompraController.class})
 @Import({
         SecurityConfig.class,
         ProblemAuthenticationEntryPoint.class,
@@ -50,11 +62,19 @@ class SecurityMutationAccessTest {
     @MockBean private RolRepository rolRepository;
     @MockBean private PasswordEncoder passwordEncoder;
     @MockBean private DetalleVentaService detalleVentaService;
+    @MockBean private DetalleVentaRepository detalleVentaRepository;
+    @MockBean private CurrentActorService currentActorService;
     @MockBean private VentaRepository ventaRepository;
     @MockBean private ProductoRepository productoRepository;
     @MockBean private CategoriaService categoriaService;
     @MockBean private CustomUserDetailsService customUserDetailsService;
     @MockBean private JwtUtil jwtUtil;
+    @MockBean private SucursalRepository sucursalRepository;
+    @MockBean private StockSucursalService stockSucursalService;
+    @MockBean private SucursalResponseAssembler sucursalResponseAssembler;
+    @MockBean private DisponibilidadResponseAssembler disponibilidadResponseAssembler;
+    @MockBean private OrdenCompraConsultaService ordenCompraConsultaService;
+    @MockBean private OrdenCompraResponseAssembler ordenCompraResponseAssembler;
 
     @Test
     @WithMockUser(roles = "CLIENTE")
@@ -82,18 +102,18 @@ class SecurityMutationAccessTest {
         mockMvc.perform(post("/api/detalle-ventas")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(detalleRequest()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
     @WithMockUser(roles = "CLIENTE")
-    void clienteNoPuedeActualizarNiEliminarDetallesDeVenta() throws Exception {
+    void mutacionesDeDetalleVentaNoExistenParaCliente() throws Exception {
         mockMvc.perform(put("/api/detalle-ventas/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(detalleRequest()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isMethodNotAllowed());
         mockMvc.perform(delete("/api/detalle-ventas/1"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
@@ -145,6 +165,27 @@ class SecurityMutationAccessTest {
     void rutaNoCatalogadaSinAutenticarDevuelve401() throws Exception {
         mockMvc.perform(post("/api/no-existe"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void sucursalesRequiereAutenticacion() throws Exception {
+        mockMvc.perform(get("/api/sucursales"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENTE")
+    void clienteNoPuedeConsultarOrdenesCompra() throws Exception {
+        mockMvc.perform(get("/api/ordenes-compra"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminPuedeConsultarOrdenesCompra() throws Exception {
+        when(ordenCompraConsultaService.listar()).thenReturn(java.util.List.of());
+        mockMvc.perform(get("/api/ordenes-compra"))
+                .andExpect(status().isOk());
     }
 
     @Test
