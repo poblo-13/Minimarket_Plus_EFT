@@ -2,8 +2,7 @@ package com.minimarket.pedido.service.impl;
 
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
-import com.minimarket.pedido.api.CrearPedidoRequest;
-import com.minimarket.pedido.api.LineaPedidoRequest;
+import com.minimarket.pedido.api.CheckoutRequest;
 import com.minimarket.pedido.domain.DetallePedido;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
@@ -12,75 +11,85 @@ import com.minimarket.pedido.integration.PedidoVentaIntegration;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.promocion.PromocionService;
 import com.minimarket.pedido.service.PedidoService;
-import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.repository.CarritoRepository;
 import com.minimarket.sucursal.SucursalRepository;
+import com.minimarket.sucursal.StockSucursalRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Objects;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 @Service
 public class PedidoServiceImpl implements PedidoService {
     private final PedidoRepository pedidoRepository;
     private final UsuarioRepository usuarioRepository;
-    private final ProductoRepository productoRepository;
     private final PedidoVentaIntegration pedidoVentaIntegration;
     private final SucursalRepository sucursalRepository;
     private final PromocionService promocionService;
+    private final CarritoRepository carritoRepository;
+    private final StockSucursalRepository stockSucursalRepository;
 
     public PedidoServiceImpl(PedidoRepository pedidoRepository, UsuarioRepository usuarioRepository,
-                              ProductoRepository productoRepository, PedidoVentaIntegration pedidoVentaIntegration,
-                              SucursalRepository sucursalRepository, PromocionService promocionService) {
-        this.pedidoRepository = pedidoRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.productoRepository = productoRepository;
-        this.pedidoVentaIntegration = pedidoVentaIntegration;
-        this.sucursalRepository = sucursalRepository;
-        this.promocionService = promocionService;
+                             PedidoVentaIntegration pedidoVentaIntegration,
+                             SucursalRepository sucursalRepository, PromocionService promocionService,
+                             CarritoRepository carritoRepository, StockSucursalRepository stockSucursalRepository) {
+        this.pedidoRepository = Objects.requireNonNull(pedidoRepository);
+        this.usuarioRepository = Objects.requireNonNull(usuarioRepository);
+        this.pedidoVentaIntegration = Objects.requireNonNull(pedidoVentaIntegration);
+        this.sucursalRepository = Objects.requireNonNull(sucursalRepository);
+        this.promocionService = Objects.requireNonNull(promocionService);
+        this.carritoRepository = Objects.requireNonNull(carritoRepository);
+        this.stockSucursalRepository = Objects.requireNonNull(stockSucursalRepository);
     }
 
     @Override
     @Transactional
-    public Pedido crear(Long clienteId, CrearPedidoRequest request) {
-        if (clienteId == null) {
-            throw new IllegalArgumentException("El cliente autenticado es obligatorio");
-        }
-        validarRequest(request);
-        if (!sucursalRepository.existsById(request.sucursalId())) {
-            throw new NoSuchElementException("Sucursal no encontrada");
-        }
-        Usuario cliente = usuarioRepository.findById(clienteId)
+    public Pedido checkout(String usernameCliente, CheckoutRequest request) {
+        validarCheckout(request);
+        Usuario cliente = usuarioRepository.findByUsernameForUpdate(usernameCliente)
                 .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
-        return crearParaCliente(cliente, request);
+        List<com.minimarket.entity.Carrito> carrito = carritoRepository.findByUsuarioId(cliente.getId());
+        if (carrito.isEmpty()) throw new IllegalStateException("El carrito está vacío");
+        if (!sucursalRepository.existsById(request.sucursalId())) throw new NoSuchElementException("Sucursal no encontrada");
+        for (com.minimarket.entity.Carrito item : carrito) {
+            int disponible = stockSucursalRepository.findBySucursalIdAndProductoId(request.sucursalId(), item.getProducto().getId())
+                    .orElseThrow(() -> new IllegalStateException("No existe stock para el producto " + item.getProducto().getId()))
+                    .getDisponible();
+            if (disponible < item.getCantidad()) throw new IllegalStateException("Stock insuficiente para el producto " + item.getProducto().getId());
+        }
+        Pedido pedido = new Pedido();
+        pedido.setUsuario(cliente);
+        pedido.setEstado(EstadoPedido.PENDIENTE);
+        pedido.setTipoEntrega(request.tipoEntrega());
+        pedido.setSucursalId(request.sucursalId());
+        pedido.setDireccionEntrega(request.direccionEntrega());
+        for (com.minimarket.entity.Carrito item : carrito) {
+            Producto producto = item.getProducto();
+            if (producto.getPrecio() == null || producto.getNombre() == null || producto.getNombre().isBlank()) {
+                throw new IllegalStateException("El producto no tiene datos válidos para crear el pedido");
+            }
+            DetallePedido detalle = new DetallePedido();
+            detalle.setProducto(producto);
+            detalle.setNombreProducto(producto.getNombre());
+            detalle.setPrecioUnitario(precioEfectivo(producto));
+            detalle.setCantidad(item.getCantidad());
+            detalle.calcularSubtotal();
+            pedido.agregarDetalle(detalle);
+        }
+        pedido.recalcularTotal();
+        Pedido persistido = pedidoRepository.save(pedido);
+        carritoRepository.deleteAll(carrito);
+        return persistido;
     }
 
     @Override
     @Transactional
-    public Pedido crear(String usernameCliente, CrearPedidoRequest request) {
-        if (usernameCliente == null || usernameCliente.isBlank()) {
-            throw new IllegalArgumentException("El username del cliente autenticado es obligatorio");
-        }
-        validarRequest(request);
-        if (!sucursalRepository.existsById(request.sucursalId())) {
-            throw new NoSuchElementException("Sucursal no encontrada");
-        }
-        Usuario cliente = usuarioRepository.findByUsername(usernameCliente)
-                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
-        return crearParaCliente(cliente, request);
-    }
-
-    @Override
-    @Transactional
-    public Pedido cancelar(Long pedidoId, Long clienteId) {
-        Pedido pedido = obtenerPedido(pedidoId);
-        if (!Objects.equals(pedido.getUsuario().getId(), clienteId)) {
-            throw new NoSuchElementException("Pedido no encontrado");
-        }
+    public Pedido cancelar(Long pedidoId, String usernameCliente) {
+        Pedido pedido = obtenerParaCliente(pedidoId, usernameCliente);
         if (pedido.getEstado() != EstadoPedido.PENDIENTE) {
             throw new IllegalStateException("Solo se pueden cancelar pedidos pendientes");
         }
@@ -90,8 +99,8 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional
-    public Pedido cancelar(Long pedidoId, String usernameCliente) {
-        Pedido pedido = obtenerParaCliente(pedidoId, usernameCliente);
+    public Pedido cancelarOperativo(Long pedidoId) {
+        Pedido pedido = obtenerPedido(pedidoId);
         if (pedido.getEstado() != EstadoPedido.PENDIENTE) {
             throw new IllegalStateException("Solo se pueden cancelar pedidos pendientes");
         }
@@ -126,13 +135,14 @@ public class PedidoServiceImpl implements PedidoService {
     public List<Pedido> listarOperativos(EstadoPedido estado, Long sucursalId) {
         List<Pedido> pedidos;
         if (estado != null && sucursalId != null) {
-            pedidos = pedidoRepository.findByEstadoAndSucursalId(estado, sucursalId);
+            pedidos = pedidoRepository.findByEstadoAndSucursalIdOrderByCreadoEnAsc(estado, sucursalId);
         } else if (estado != null) {
-            pedidos = pedidoRepository.findByEstado(estado);
+            pedidos = pedidoRepository.findByEstadoOrderByCreadoEnAsc(estado);
         } else if (sucursalId != null) {
-            pedidos = pedidoRepository.findBySucursalId(sucursalId);
+            pedidos = pedidoRepository.findBySucursalIdOrderByCreadoEnAsc(sucursalId);
         } else {
-            pedidos = pedidoRepository.findAll();
+            pedidos = pedidoRepository.findByEstadoInOrderByCreadoEnAsc(List.of(
+                    EstadoPedido.PENDIENTE, EstadoPedido.CONFIRMADO, EstadoPedido.EN_PREPARACION, EstadoPedido.LISTO));
         }
         pedidos.forEach(this::inicializarDetalles);
         return pedidos;
@@ -155,47 +165,17 @@ public class PedidoServiceImpl implements PedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    private Pedido crearParaCliente(Usuario cliente, CrearPedidoRequest request) {
-        Pedido pedido = new Pedido();
-        pedido.setUsuario(cliente);
-        pedido.setEstado(EstadoPedido.PENDIENTE);
-        pedido.setTipoEntrega(request.tipoEntrega());
-        pedido.setSucursalId(request.sucursalId());
-        pedido.setDireccionEntrega(request.direccionEntrega());
-
-        for (LineaPedidoRequest linea : request.detalles()) {
-            Producto producto = productoRepository.findById(linea.productoId())
-                    .orElseThrow(() -> new NoSuchElementException("Producto no encontrado: " + linea.productoId()));
-            if (producto.getPrecio() == null || producto.getNombre() == null || producto.getNombre().isBlank()) {
-                throw new IllegalStateException("El producto no tiene datos válidos para crear el pedido");
-            }
-            DetallePedido detalle = new DetallePedido();
-            detalle.setProducto(producto);
-            detalle.setNombreProducto(producto.getNombre());
-            detalle.setPrecioUnitario(precioEfectivo(producto));
-            detalle.setCantidad(linea.cantidad());
-            detalle.calcularSubtotal();
-            pedido.agregarDetalle(detalle);
+    private void validarCheckout(CheckoutRequest request) {
+        if (request == null || request.tipoEntrega() == null || request.sucursalId() == null) {
+            throw new IllegalArgumentException("El checkout requiere tipo de entrega y sucursal");
         }
-        pedido.recalcularTotal();
-        return pedidoRepository.save(pedido);
-    }
-
-    private void validarRequest(CrearPedidoRequest request) {
-        if (request == null || request.tipoEntrega() == null || request.detalles() == null || request.detalles().isEmpty()) {
-            throw new IllegalArgumentException("El pedido debe incluir tipo de entrega y al menos un detalle");
-        }
-        if (request.sucursalId() == null) {
-            throw new IllegalArgumentException("Todo pedido requiere sucursalId");
+        String direccion = request.direccionEntrega();
+        if (request.tipoEntrega() == TipoEntrega.RETIRO_TIENDA && direccion != null && !direccion.isBlank()) {
+            throw new IllegalArgumentException("El retiro en tienda no admite dirección de entrega");
         }
         if (request.tipoEntrega() == TipoEntrega.DESPACHO_DOMICILIO
-                && (request.direccionEntrega() == null || request.direccionEntrega().isBlank())) {
-            throw new IllegalArgumentException("El despacho a domicilio requiere dirección");
-        }
-        for (LineaPedidoRequest linea : request.detalles()) {
-            if (linea == null || linea.productoId() == null || linea.cantidad() == null || linea.cantidad() < 1) {
-                throw new IllegalArgumentException("Cada detalle requiere producto y cantidad positiva");
-            }
+                && (direccion == null || direccion.trim().isEmpty() || direccion.trim().length() > 500)) {
+            throw new IllegalArgumentException("El despacho a domicilio requiere una dirección de hasta 500 caracteres");
         }
     }
 
@@ -209,9 +189,6 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     private BigDecimal precioEfectivo(Producto producto) {
-        if (promocionService == null) {
-            return BigDecimal.valueOf(producto.getPrecio()).setScale(2, RoundingMode.HALF_UP);
-        }
         return promocionService.calcularPrecioEfectivo(producto.getId(), java.time.LocalDate.now());
     }
 

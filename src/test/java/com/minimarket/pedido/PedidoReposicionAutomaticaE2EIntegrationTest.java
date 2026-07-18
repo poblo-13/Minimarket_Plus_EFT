@@ -9,14 +9,14 @@ import com.minimarket.entity.Inventario;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
 import com.minimarket.entity.Venta;
-import com.minimarket.pedido.api.CrearPedidoRequest;
-import com.minimarket.pedido.api.LineaPedidoRequest;
+import com.minimarket.pedido.api.CheckoutRequest;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.CategoriaRepository;
+import com.minimarket.repository.CarritoRepository;
 import com.minimarket.repository.InventarioRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
@@ -50,6 +50,7 @@ class PedidoReposicionAutomaticaE2EIntegrationTest {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private ProductoRepository productoRepository;
+    @Autowired private CarritoRepository carritoRepository;
 
     @Test
     void confirmarPedidoBajoMinimoCreaVentaMovimientoYUnaUnicaOrdenAbiertaSinDuplicarEnReintento() {
@@ -61,9 +62,11 @@ class PedidoReposicionAutomaticaE2EIntegrationTest {
         StockSucursal stockConfigurado = administracionStockService.configurarStock(
                 sucursal.getId(), producto.getId(), 3, 2, proveedor.getId());
 
-        Pedido pedido = pedidoService.crear(cliente.getId(), new CrearPedidoRequest(
-                TipoEntrega.RETIRO_TIENDA, sucursal.getId(), null,
-                List.of(new LineaPedidoRequest(producto.getId(), 1))));
+        com.minimarket.entity.Carrito carrito = new com.minimarket.entity.Carrito();
+        carrito.setUsuario(cliente); carrito.setProducto(producto); carrito.setCantidad(1);
+        carritoRepository.saveAndFlush(carrito);
+        Pedido pedido = pedidoService.checkout(cliente.getUsername(),
+                new CheckoutRequest(TipoEntrega.RETIRO_TIENDA, sucursal.getId(), null));
         long ventasAntes = ventaRepository.count();
 
         pedidoService.cambiarEstado(pedido.getId(), EstadoPedido.CONFIRMADO);

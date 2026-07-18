@@ -3,6 +3,7 @@ package com.minimarket.entity;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "carrito", uniqueConstraints = @UniqueConstraint(name = "uk_carrito_usuario_producto", columnNames = {"usuario_id", "producto_id"}))
 public class Carrito {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

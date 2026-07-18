@@ -3,8 +3,7 @@ package com.minimarket.reporte;
 import com.minimarket.entity.Categoria;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
-import com.minimarket.pedido.api.CrearPedidoRequest;
-import com.minimarket.pedido.api.LineaPedidoRequest;
+import com.minimarket.pedido.api.CheckoutRequest;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
@@ -13,6 +12,7 @@ import com.minimarket.promocion.Promocion;
 import com.minimarket.promocion.PromocionRepository;
 import com.minimarket.reporte.api.RotacionProductoResponse;
 import com.minimarket.repository.CategoriaRepository;
+import com.minimarket.repository.CarritoRepository;
 import com.minimarket.repository.DetalleVentaRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
@@ -40,6 +40,7 @@ class PromocionRotacionSucursalIntegrationTest {
     @Autowired SucursalRepository sucursales;
     @Autowired StockSucursalRepository stocks;
     @Autowired DetalleVentaRepository detallesVenta;
+    @Autowired CarritoRepository carritos;
 
     @Test
     void pedidoConPromocionVigenteSeVendeYSoloApareceEnReporteDeSuSucursal() {
@@ -50,8 +51,11 @@ class PromocionRotacionSucursalIntegrationTest {
         stock(origen, producto);
         promocionVigente(producto);
 
-        Pedido pedido = pedidos.crear(usuario.getId(), new CrearPedidoRequest(TipoEntrega.RETIRO_TIENDA,
-                origen.getId(), null, List.of(new LineaPedidoRequest(producto.getId(), 2))));
+        com.minimarket.entity.Carrito carrito = new com.minimarket.entity.Carrito();
+        carrito.setUsuario(usuario); carrito.setProducto(producto); carrito.setCantidad(2);
+        carritos.saveAndFlush(carrito);
+        Pedido pedido = pedidos.checkout(usuario.getUsername(),
+                new CheckoutRequest(TipoEntrega.RETIRO_TIENDA, origen.getId(), null));
         pedidos.cambiarEstado(pedido.getId(), EstadoPedido.CONFIRMADO);
 
         assertEquals(new BigDecimal("80.00"), pedido.getDetalles().getFirst().getPrecioUnitario());

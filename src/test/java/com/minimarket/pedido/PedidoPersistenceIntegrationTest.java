@@ -3,18 +3,20 @@ package com.minimarket.pedido;
 import com.minimarket.entity.Categoria;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
-import com.minimarket.pedido.api.CrearPedidoRequest;
-import com.minimarket.pedido.api.LineaPedidoRequest;
+import com.minimarket.pedido.api.CheckoutRequest;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.CategoriaRepository;
+import com.minimarket.repository.CarritoRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.sucursal.Sucursal;
 import com.minimarket.sucursal.SucursalRepository;
+import com.minimarket.sucursal.StockSucursal;
+import com.minimarket.sucursal.StockSucursalRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,6 +39,8 @@ class PedidoPersistenceIntegrationTest {
     @Autowired CategoriaRepository categoriaRepository;
     @Autowired EntityManager entityManager;
     @Autowired SucursalRepository sucursalRepository;
+    @Autowired StockSucursalRepository stockSucursalRepository;
+    @Autowired CarritoRepository carritoRepository;
 
     @Test
     @Transactional
@@ -45,8 +49,14 @@ class PedidoPersistenceIntegrationTest {
         Producto producto = producto();
         Sucursal sucursal = sucursal();
 
-        Pedido creado = pedidoService.crear(usuario.getId(), new CrearPedidoRequest(TipoEntrega.DESPACHO_DOMICILIO,
-                sucursal.getId(), "Calle Uno 123", List.of(new LineaPedidoRequest(producto.getId(), 2))));
+        StockSucursal stock = new StockSucursal();
+        stock.setSucursal(sucursal); stock.setProducto(producto); stock.setDisponible(5); stock.setStockMinimo(0);
+        stockSucursalRepository.saveAndFlush(stock);
+        com.minimarket.entity.Carrito carrito = new com.minimarket.entity.Carrito();
+        carrito.setUsuario(usuario); carrito.setProducto(producto); carrito.setCantidad(2);
+        carritoRepository.saveAndFlush(carrito);
+        Pedido creado = pedidoService.checkout(usuario.getUsername(),
+                new CheckoutRequest(TipoEntrega.DESPACHO_DOMICILIO, sucursal.getId(), "Calle Uno 123"));
         Pedido persistido = pedidoRepository.findById(creado.getId()).orElseThrow();
 
         assertEquals(new BigDecimal("25.00"), persistido.getTotal());
@@ -57,7 +67,7 @@ class PedidoPersistenceIntegrationTest {
         assertNotNull(persistido.getActualizadoEn());
         assertEquals(0L, persistido.getVersion());
 
-        Pedido confirmado = pedidoService.cancelar(creado.getId(), usuario.getId());
+        Pedido confirmado = pedidoService.cancelar(creado.getId(), usuario.getUsername());
         entityManager.flush();
         assertEquals(1L, confirmado.getVersion());
         assertEquals(EstadoPedido.CANCELADO, confirmado.getEstado());

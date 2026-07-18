@@ -28,10 +28,6 @@ public final class ResourceMapper {
                 value.getTipoMovimiento(), value.getFechaMovimiento());
     }
 
-    public static CarritoResponse toResponse(Carrito value) {
-        return new CarritoResponse(value.getId(), id(value.getUsuario()), id(value.getProducto()), value.getCantidad());
-    }
-
     public static VentaResponse toResponse(Venta value) {
         List<Long> detalleIds = value.getDetalles() == null ? List.of() : value.getDetalles().stream()
                 .map(DetalleVenta::getId).toList();
