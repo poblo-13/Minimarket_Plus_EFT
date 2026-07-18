@@ -7,6 +7,7 @@ import com.minimarket.pedido.api.LineaPedidoRequest;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
+import com.minimarket.pedido.integration.PedidoVentaIntegration;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
@@ -28,6 +29,7 @@ class PedidoServiceImplTest {
     @Mock PedidoRepository pedidoRepository;
     @Mock UsuarioRepository usuarioRepository;
     @Mock ProductoRepository productoRepository;
+    @Mock PedidoVentaIntegration pedidoVentaIntegration;
     @InjectMocks PedidoServiceImpl pedidoService;
 
     @Test
@@ -66,8 +68,13 @@ class PedidoServiceImplTest {
         Pedido pedido = pedido(20L, EstadoPedido.PENDIENTE);
         when(pedidoRepository.findById(20L)).thenReturn(Optional.of(pedido));
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pedidoVentaIntegration.confirmarVenta(20L)).thenAnswer(invocation -> {
+            pedido.setEstado(EstadoPedido.CONFIRMADO);
+            return pedido;
+        });
 
         assertEquals(EstadoPedido.CONFIRMADO, pedidoService.cambiarEstado(20L, EstadoPedido.CONFIRMADO).getEstado());
+        verify(pedidoVentaIntegration).confirmarVenta(20L);
         assertThrows(IllegalStateException.class, () -> pedidoService.cambiarEstado(20L, EstadoPedido.LISTO));
         assertThrows(IllegalStateException.class, () -> pedidoService.cancelar(20L, 7L));
 

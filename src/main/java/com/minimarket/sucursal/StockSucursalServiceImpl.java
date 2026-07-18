@@ -64,6 +64,14 @@ public class StockSucursalServiceImpl implements StockSucursalService {
         return stock;
     }
 
+    @Override
+    @Transactional
+    public StockSucursal descontarParaConfirmacionPedido(Long sucursalId, Long productoId, int cantidad) {
+        StockSucursal stock = buscarStockBloqueado(sucursalId, productoId);
+        stock.disminuir(cantidad);
+        return stock;
+    }
+
     private StockSucursal buscarStock(Long sucursalId, Long productoId) {
         return stockSucursalRepository.findBySucursalIdAndProductoId(sucursalId, productoId)
                 .orElseThrow(() -> new EntityNotFoundException("Stock de sucursal no encontrado"));

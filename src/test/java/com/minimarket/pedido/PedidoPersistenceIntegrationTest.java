@@ -53,10 +53,10 @@ class PedidoPersistenceIntegrationTest {
         assertNotNull(persistido.getActualizadoEn());
         assertEquals(0L, persistido.getVersion());
 
-        Pedido confirmado = pedidoService.cambiarEstado(creado.getId(), EstadoPedido.CONFIRMADO);
+        Pedido confirmado = pedidoService.cancelar(creado.getId(), usuario.getId());
         entityManager.flush();
         assertEquals(1L, confirmado.getVersion());
-        assertEquals(EstadoPedido.CONFIRMADO, confirmado.getEstado());
+        assertEquals(EstadoPedido.CANCELADO, confirmado.getEstado());
     }
 
     private Usuario usuario() {

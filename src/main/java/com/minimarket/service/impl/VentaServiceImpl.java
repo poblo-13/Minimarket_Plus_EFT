@@ -6,6 +6,8 @@ import com.minimarket.entity.DetalleVenta;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
 import com.minimarket.entity.Venta;
+import com.minimarket.pedido.domain.DetallePedido;
+import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.repository.VentaRepository;
@@ -74,6 +76,29 @@ public class VentaServiceImpl implements VentaService {
             inventarioService.registrarSalidaVenta(detalle.getProducto(), detalle.getCantidad(), fecha, saved);
         }
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public Venta registrarDesdePedido(Pedido pedido, Map<Long, Producto> productosBloqueados) {
+        Venta venta = new Venta();
+        venta.setUsuario(pedido.getUsuario());
+        venta.setFecha(LocalDateTime.now());
+        List<DetalleVenta> detalles = new ArrayList<>();
+        for (DetallePedido detallePedido : pedido.getDetalles()) {
+            Producto producto = productosBloqueados.get(detallePedido.getProducto().getId());
+            if (producto == null) {
+                throw new IllegalStateException("El producto del pedido no está bloqueado");
+            }
+            DetalleVenta detalleVenta = new DetalleVenta();
+            detalleVenta.setVenta(venta);
+            detalleVenta.setProducto(producto);
+            detalleVenta.setCantidad(detallePedido.getCantidad());
+            detalleVenta.setPrecio(detallePedido.getPrecioUnitario().doubleValue());
+            detalles.add(detalleVenta);
+        }
+        venta.setDetalles(detalles);
+        return ventaRepository.save(venta);
     }
 
     @Override

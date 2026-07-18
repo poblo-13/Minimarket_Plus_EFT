@@ -8,6 +8,7 @@ import com.minimarket.pedido.domain.DetallePedido;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
+import com.minimarket.pedido.integration.PedidoVentaIntegration;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.ProductoRepository;
@@ -26,12 +27,14 @@ public class PedidoServiceImpl implements PedidoService {
     private final PedidoRepository pedidoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
+    private final PedidoVentaIntegration pedidoVentaIntegration;
 
     public PedidoServiceImpl(PedidoRepository pedidoRepository, UsuarioRepository usuarioRepository,
-                             ProductoRepository productoRepository) {
+                              ProductoRepository productoRepository, PedidoVentaIntegration pedidoVentaIntegration) {
         this.pedidoRepository = pedidoRepository;
         this.usuarioRepository = usuarioRepository;
         this.productoRepository = productoRepository;
+        this.pedidoVentaIntegration = pedidoVentaIntegration;
     }
 
     @Override
@@ -111,12 +114,14 @@ public class PedidoServiceImpl implements PedidoService {
         if (nuevoEstado == null) {
             throw new IllegalArgumentException("El nuevo estado es obligatorio");
         }
+        if (nuevoEstado == EstadoPedido.CONFIRMADO) {
+            return pedidoVentaIntegration.confirmarVenta(pedidoId);
+        }
         Pedido pedido = obtenerPedido(pedidoId);
         if (!esTransicionValida(pedido.getEstado(), nuevoEstado)) {
             throw new IllegalStateException("Transición de estado no válida");
         }
         pedido.setEstado(nuevoEstado);
-        // La creación de Venta y el descuento de inventario se conectarán mediante PedidoVentaIntegration.
         return pedidoRepository.save(pedido);
     }
 
