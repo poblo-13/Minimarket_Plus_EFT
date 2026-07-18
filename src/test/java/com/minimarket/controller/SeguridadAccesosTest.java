@@ -13,6 +13,7 @@ import com.minimarket.service.InventarioService;
 import com.minimarket.service.ProductoService;
 import com.minimarket.service.VentaService;
 import com.minimarket.service.CategoriaService;
+import com.minimarket.promocion.PromocionService;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.repository.VentaRepository;
 import com.minimarket.security.CurrentActorService;
@@ -64,6 +65,7 @@ public class SeguridadAccesosTest {
     @MockBean
     private VentaService ventaService;
     @MockBean private CategoriaService categoriaService;
+    @MockBean private PromocionService promocionService;
     @MockBean private UsuarioRepository usuarioRepository;
     @MockBean private VentaRepository ventaRepository;
     @MockBean private CurrentActorService currentActorService;
