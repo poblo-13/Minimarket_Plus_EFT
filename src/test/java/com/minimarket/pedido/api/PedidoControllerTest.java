@@ -6,6 +6,8 @@ import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.pedido.repository.PedidoRepository;
+import com.minimarket.entity.Venta;
+import com.minimarket.security.SecurityRoles;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
@@ -22,6 +24,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.math.BigDecimal;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -34,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PedidoControllerTest {
     private PedidoService pedidoService;
@@ -118,6 +122,22 @@ class PedidoControllerTest {
                         .contentType("application/json").content("{\"estado\":\"LISTO\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"));
+    }
+
+    @Test
+    void pedidoDeStaffExponeSoloEnlacesConsultablesDeVentaYSucursal() {
+        Pedido pedido = pedido(7L, EstadoPedido.PENDIENTE);
+        Venta venta = new Venta();
+        venta.setId(9L);
+        pedido.setVenta(venta);
+        Authentication staff = new UsernamePasswordAuthenticationToken("admin", "test",
+                java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + SecurityRoles.ADMIN)));
+
+        when(pedidoRepository.findById(7L)).thenReturn(Optional.of(pedido));
+        var resource = new PedidoController(pedidoService, pedidoRepository).obtener(7L, staff);
+        assertEquals("/api/pedidos/7", resource.getRequiredLink("self").getHref());
+        assertEquals("/api/ventas/9", resource.getRequiredLink("venta").getHref());
+        assertEquals("/api/admin/sucursales/2", resource.getRequiredLink("sucursal").getHref());
     }
 
     private Pedido pedido(Long id, EstadoPedido estado) {

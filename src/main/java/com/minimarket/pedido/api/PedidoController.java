@@ -5,6 +5,8 @@ import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.security.SecurityRoles;
+import com.minimarket.controller.VentaController;
+import com.minimarket.sucursal.api.AdministracionSucursalController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -121,6 +123,12 @@ public class PedidoController {
         if (isStaff(authentication) && siguiente != null) {
             model.add(linkTo(methodOn(PedidoController.class).cambiarEstado(pedido.getId(), null, null))
                     .withRel("transicionar-" + siguiente.name().toLowerCase()));
+        }
+        if (pedido.getVenta() != null && pedido.getVenta().getId() != null) {
+            model.add(linkTo(methodOn(VentaController.class).obtenerVentaPorId(pedido.getVenta().getId())).withRel("venta"));
+        }
+        if (isStaff(authentication) && pedido.getSucursalId() != null) {
+            model.add(linkTo(methodOn(AdministracionSucursalController.class).obtener(pedido.getSucursalId())).withRel("sucursal"));
         }
         return model;
     }

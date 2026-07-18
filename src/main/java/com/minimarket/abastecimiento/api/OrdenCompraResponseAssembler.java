@@ -15,6 +15,7 @@ public class OrdenCompraResponseAssembler implements RepresentationModelAssemble
     public EntityModel<OrdenCompraResponse> toModel(OrdenCompra orden) {
         return EntityModel.of(new OrdenCompraResponse(orden.getId(), orden.getSucursal().getId(),
                         orden.getProducto().getId(), orden.getProveedor().getId(), orden.getCantidadSolicitada(), orden.getEstado()),
+                linkTo(methodOn(OrdenCompraController.class).obtenerOrdenCompra(orden.getId())).withSelfRel(),
                 linkTo(methodOn(OrdenCompraController.class).listarOrdenesCompra()).withRel("collection"));
     }
 }

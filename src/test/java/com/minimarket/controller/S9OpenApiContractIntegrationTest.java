@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class S9OpenApiContractIntegrationTest {
     private static final String ADMIN_USERNAME = "s9-oas-admin";
     private static final String ADMIN_PASSWORD = "S9OasPass123";
+    private static final String CUSTOMER_USERNAME = "s9-oas-customer";
     @Autowired MockMvc mockMvc;
     @Autowired UsuarioRepository usuarioRepository;
     @Autowired RolRepository rolRepository;
@@ -51,6 +52,13 @@ class S9OpenApiContractIntegrationTest {
         admin.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
         admin.setRoles(Set.of(adminRole));
         usuarioRepository.save(admin);
+        Rol customerRole = rolRepository.findByNombre(SecurityRoles.CLIENTE)
+                .orElseGet(() -> rolRepository.save(new Rol(SecurityRoles.CLIENTE)));
+        Usuario customer = usuarioRepository.findByUsername(CUSTOMER_USERNAME).orElseGet(Usuario::new);
+        customer.setUsername(CUSTOMER_USERNAME);
+        customer.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+        customer.setRoles(Set.of(customerRole));
+        usuarioRepository.save(customer);
     }
 
     @ParameterizedTest(name = "{0} {1} -> {2} documents {3} as {4}")
@@ -93,6 +101,16 @@ class S9OpenApiContractIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith("application/hal+json"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$._links.self.href").exists());
         mockMvc.perform(get("/api/categorias/999999").with(adminBearer()))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void individualPurchaseOrderIsAdminOnlyAndUsesProblemDetailWhenAbsent() throws Exception {
+        mockMvc.perform(get("/api/ordenes-compra/999999").with(customerBearer()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/ordenes-compra/999999").with(adminBearer()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value(404));
@@ -150,6 +168,7 @@ class S9OpenApiContractIntegrationTest {
                 op("/api/admin/sucursales/{id}/entradas", "post", "200", "application/hal+json", "StockSucursalResponse"),
                 op("/api/admin/sucursales/{id}/salidas", "post", "200", "application/hal+json", "StockSucursalResponse"),
                 op("/api/ordenes-compra", "get", "200", "application/hal+json", "OrdenCompraResponse"),
+                op("/api/ordenes-compra/{id}", "get", "200", "application/hal+json", "OrdenCompraResponse"),
                 op("/api/promociones", "get", "200", "application/json", "array:PromocionResponse"),
                 op("/api/promociones/{id}", "get", "200", "application/json", "PromocionResponse"),
                 op("/api/promociones", "post", "201", "application/json", "PromocionResponse"),
@@ -189,8 +208,16 @@ class S9OpenApiContractIntegrationTest {
     }
 
     private RequestPostProcessor adminBearer() throws Exception {
+        return bearerFor(ADMIN_USERNAME);
+    }
+
+    private RequestPostProcessor customerBearer() throws Exception {
+        return bearerFor(CUSTOMER_USERNAME);
+    }
+
+    private RequestPostProcessor bearerFor(String username) throws Exception {
         String body = mockMvc.perform(post("/auth/login").contentType("application/json")
-                        .content("{\"username\":\"" + ADMIN_USERNAME + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}"))
+                        .content("{\"username\":\"" + username + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String token = JsonPath.read(body, "$.token");
         return request -> { request.addHeader("Authorization", "Bearer " + token); return request; };

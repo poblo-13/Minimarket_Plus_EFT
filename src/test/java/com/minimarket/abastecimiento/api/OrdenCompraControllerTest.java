@@ -3,6 +3,7 @@ package com.minimarket.abastecimiento.api;
 import com.minimarket.abastecimiento.EstadoOrdenCompra;
 import com.minimarket.abastecimiento.OrdenCompra;
 import com.minimarket.abastecimiento.OrdenCompraConsultaService;
+import com.minimarket.abastecimiento.OrdenCompraRepository;
 import com.minimarket.abastecimiento.Proveedor;
 import com.minimarket.entity.Categoria;
 import com.minimarket.entity.Producto;
@@ -22,6 +23,7 @@ import org.springframework.hateoas.EntityModel;
 import com.minimarket.abastecimiento.api.dto.OrdenCompraResponse;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class OrdenCompraControllerTest {
     @Mock private OrdenCompraConsultaService ordenCompraConsultaService;
+    @Mock private OrdenCompraRepository ordenCompraRepository;
     @Mock private OrdenCompraResponseAssembler assembler;
     @InjectMocks private OrdenCompraController controller;
     private MockMvc mockMvc;
@@ -51,11 +54,26 @@ class OrdenCompraControllerTest {
 
         CollectionModel<EntityModel<OrdenCompraResponse>> hal = controller.listarOrdenesCompra();
         assertEquals("/api/ordenes-compra", hal.getRequiredLink("self").getHref());
+        assertEquals("/api/ordenes-compra/1", hal.getContent().iterator().next().getRequiredLink("self").getHref());
 
         mockMvc.perform(get("/api/ordenes-compra").accept("application/hal+json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].sucursalId").value(2))
                 .andExpect(jsonPath("$.content[0].producto").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void obtieneOrdenPorRutaIndividualConSelfReal() {
+        OrdenCompra orden = orden();
+        when(ordenCompraRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(assembler.toModel(orden)).thenAnswer(invocation ->
+                new OrdenCompraResponseAssembler().toModel(invocation.getArgument(0)));
+
+        EntityModel<OrdenCompraResponse> resource = controller.obtenerOrdenCompra(1L);
+
+        assertEquals("/api/ordenes-compra/1", resource.getRequiredLink("self").getHref());
+        assertEquals("/api/ordenes-compra", resource.getRequiredLink("collection").getHref());
     }
 
     private OrdenCompra orden() {
