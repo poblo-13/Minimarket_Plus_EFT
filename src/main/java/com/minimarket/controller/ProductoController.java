@@ -56,7 +56,8 @@ public class ProductoController {
     @GetMapping
     @Operation(summary = "Lista productos", description = "Requiere autenticación Bearer JWT.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Colección HAL de productos."),
+            @ApiResponse(responseCode = "200", description = "Colección HAL de productos.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
@@ -72,7 +73,8 @@ public class ProductoController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtiene un producto", description = "Requiere autenticación Bearer JWT.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Recurso HAL del producto."),
+            @ApiResponse(responseCode = "200", description = "Recurso HAL del producto.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "400", description = "ID inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -92,7 +94,8 @@ public class ProductoController {
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
     @Operation(summary = "Crea un producto", description = "Requiere Bearer JWT con rol ADMIN.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Producto creado; Location apunta al enlace self."),
+            @ApiResponse(responseCode = "201", description = "Producto creado; Location apunta al enlace self.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Cuerpo inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -106,7 +109,10 @@ public class ProductoController {
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
-    public ResponseEntity<EntityModel<ProductoResponse>> guardarProducto(@Valid @RequestBody ProductoRequest request) {
+    public ResponseEntity<EntityModel<ProductoResponse>> guardarProducto(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ProductoRequest.class)))
+            @Valid @org.springframework.web.bind.annotation.RequestBody ProductoRequest request) {
         Producto saved = productoService.save(newProduct(request, requireCategory(request.categoriaId())));
         EntityModel<ProductoResponse> model = toModel(saved);
         URI location = model.getRequiredLink("self").toUri();
@@ -115,9 +121,12 @@ public class ProductoController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Actualiza un producto", description = "Requiere Bearer JWT con rol ADMIN.")
+    @Operation(summary = "Actualiza un producto", description = "Requiere Bearer JWT con rol ADMIN.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductoRequest.class))))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Producto actualizado en formato HAL."),
+            @ApiResponse(responseCode = "200", description = "Producto actualizado en formato HAL.", content = @Content(
+                    mediaType = MediaTypes.HAL_JSON_VALUE, schema = @Schema(implementation = ProductoResponse.class))),
             @ApiResponse(responseCode = "400", description = "ID o cuerpo inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(

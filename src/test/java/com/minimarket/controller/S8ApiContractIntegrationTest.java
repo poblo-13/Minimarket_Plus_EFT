@@ -1,5 +1,12 @@
 package com.minimarket.controller;
 
+import com.minimarket.entity.Rol;
+import com.minimarket.entity.Usuario;
+import com.minimarket.repository.RolRepository;
+import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.security.SecurityRoles;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -8,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -16,11 +24,28 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest(properties = "app.seed.enabled=true")
-@ActiveProfiles("dev")
+@SpringBootTest(properties = "app.seed.enabled=false")
+@ActiveProfiles("test")
 @AutoConfigureMockMvc
 class S8ApiContractIntegrationTest {
+    private static final String ADMIN_USERNAME = "s8-admin";
+    private static final String ADMIN_PASSWORD = "S8AdminPass123";
+
     @Autowired MockMvc mockMvc;
+    @Autowired UsuarioRepository usuarioRepository;
+    @Autowired RolRepository rolRepository;
+    @Autowired PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void createAdminFixture() {
+        Rol adminRole = rolRepository.findByNombre(SecurityRoles.ADMIN)
+                .orElseGet(() -> rolRepository.save(new Rol(SecurityRoles.ADMIN)));
+        Usuario admin = usuarioRepository.findByUsername(ADMIN_USERNAME).orElseGet(Usuario::new);
+        admin.setUsername(ADMIN_USERNAME);
+        admin.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+        admin.setRoles(Set.of(adminRole));
+        usuarioRepository.save(admin);
+    }
 
     @Test
     void unauthenticatedRequestIsRfc9457WithBearerChallenge() throws Exception {
@@ -101,6 +126,12 @@ class S8ApiContractIntegrationTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/productos']").exists())
+                .andExpect(jsonPath("$.paths['/api/productos'].get.responses['200'].content['application/hal+json'].schema.$ref")
+                        .value("#/components/schemas/ProductoResponse"))
+                .andExpect(jsonPath("$.paths['/api/productos'].post.requestBody.content['application/json'].schema.$ref")
+                        .value("#/components/schemas/ProductoRequest"))
+                .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['201'].content['application/hal+json'].schema.$ref")
+                        .value("#/components/schemas/CategoriaResponse"))
                 .andExpect(jsonPath("$.paths['/api/categorias'].post.responses['400'].content['application/problem+json'].schema.$ref")
                         .value("#/components/schemas/ProblemDetail"))
                 .andExpect(jsonPath("$.paths['/api/categorias'].get.responses['401'].content['application/problem+json'].schema.$ref")
@@ -125,10 +156,27 @@ class S8ApiContractIntegrationTest {
                         .value("JWT"));
     }
 
+    @Test
+    void representativeResponsesUseTheirDocumentedContentTypes() throws Exception {
+        mockMvc.perform(get("/api/productos").with(adminBearer()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/hal+json"));
+
+        mockMvc.perform(get("/api/productos/0").with(adminBearer()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"" + ADMIN_USERNAME + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+    }
+
     private RequestPostProcessor adminBearer() throws Exception {
         String body = mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"" + ADMIN_USERNAME + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         String token = com.jayway.jsonpath.JsonPath.read(body, "$.token");
