@@ -54,10 +54,10 @@ public class ProductoController {
     private final CategoriaService categoriaService;
 
     @GetMapping
-    @Operation(summary = "Lista productos", description = "Requiere autenticación HTTP Basic.")
+    @Operation(summary = "Lista productos", description = "Requiere autenticación Bearer JWT.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Colección HAL de productos."),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.",
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
@@ -70,13 +70,13 @@ public class ProductoController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Obtiene un producto", description = "Requiere autenticación HTTP Basic.")
+    @Operation(summary = "Obtiene un producto", description = "Requiere autenticación Bearer JWT.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Recurso HAL del producto."),
             @ApiResponse(responseCode = "400", description = "ID inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Producto inexistente; error RFC 9457.", content = @Content(
@@ -90,13 +90,13 @@ public class ProductoController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Crea un producto", description = "Requiere HTTP Basic con rol ADMIN.")
+    @Operation(summary = "Crea un producto", description = "Requiere Bearer JWT con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Producto creado; Location apunta al enlace self."),
             @ApiResponse(responseCode = "400", description = "Cuerpo inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene rol ADMIN; error RFC 9457.", content = @Content(
@@ -115,12 +115,12 @@ public class ProductoController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Actualiza un producto", description = "Requiere HTTP Basic con rol ADMIN.")
+    @Operation(summary = "Actualiza un producto", description = "Requiere Bearer JWT con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Producto actualizado en formato HAL."),
             @ApiResponse(responseCode = "400", description = "ID o cuerpo inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene rol ADMIN; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
@@ -136,12 +136,12 @@ public class ProductoController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Elimina un producto", description = "Requiere HTTP Basic con rol ADMIN.")
+    @Operation(summary = "Elimina un producto", description = "Requiere Bearer JWT con rol ADMIN.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Producto eliminado."),
             @ApiResponse(responseCode = "400", description = "ID inválido; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales Basic ausentes o inválidas.", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Token Bearer JWT ausente o inválido.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene rol ADMIN; error RFC 9457.", content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),

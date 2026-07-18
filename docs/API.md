@@ -4,7 +4,8 @@ Base local de ejemplo: `http://localhost:8080`. Todas las rutas siguientes corre
 
 ## Convenciones
 
-- Salvo `GET /public/hola` y la UI/especificación OpenAPI, las rutas requieren HTTP Basic.
+- `POST /auth/login` recibe credenciales y devuelve un token JWT. Configure `JWT_SECRET` antes de iniciar la aplicación para firmar y validar los tokens.
+- Salvo `GET /public/hola`, `POST /auth/login` y la UI/especificación OpenAPI, las rutas requieren Bearer JWT mediante `Authorization: Bearer <token>`.
 - Una operación restringida sin autenticar devuelve `401`; autenticada sin el rol requerido devuelve `403` cuando la protección por método aplica.
 - Los controladores devuelven `EntityModel` y `CollectionModel` de Spring HATEOAS. La representación de productos declara explícitamente `application/hal+json`; las demás respuestas HATEOAS contienen enlaces generados por el framework.
 - Las creaciones devuelven `201 Created`, un cuerpo del recurso y `Location` hacia su enlace `self`.
@@ -17,6 +18,7 @@ La columna **acceso** describe la regla implementada; los estados son las respue
 | Método | Ruta | Acceso | Resultado / estados |
 | --- | --- | --- | --- |
 | GET | `/public/hola` | Público | `200`, texto `¡Hola Mundo!` |
+| POST | `/auth/login` | Público | `200` token JWT; `400`, `401` |
 | GET | `/api/productos` | Autenticado | `200` colección HAL; `401` |
 | GET | `/api/productos/{id}` | Autenticado | `200` HAL; `400`, `401`, `404` |
 | POST | `/api/productos` | `ADMIN` | `201` HAL; `400`, `401`, `403`, `404` |

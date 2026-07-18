@@ -2,12 +2,17 @@ package com.minimarket.controller;
 
 import com.minimarket.security.model.JwtResponse;
 import com.minimarket.security.model.LoginRequest;
+import com.minimarket.security.model.RegisterRequest;
+import com.minimarket.security.model.RegisterResponse;
+import com.minimarket.security.service.RegistrationService;
 import com.minimarket.security.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -28,11 +34,14 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final RegistrationService registrationService;
 
     public AuthController(AuthenticationManager authenticationManager,
-                          JwtUtil jwtUtil) {
+                           JwtUtil jwtUtil,
+                           RegistrationService registrationService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.registrationService = registrationService;
     }
 
     @PostMapping("/login")
@@ -73,5 +82,20 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        Optional<RegisterResponse> response = registrationService.register(registerRequest);
+        if (response.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response.get());
+        }
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "Username already exists."
+        );
+        problem.setProperty("code", "USERNAME_ALREADY_EXISTS");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 }

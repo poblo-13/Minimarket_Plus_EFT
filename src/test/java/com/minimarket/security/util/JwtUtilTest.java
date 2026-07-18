@@ -16,7 +16,7 @@ public class JwtUtilTest {
 
     @BeforeEach
     public void setUp() {
-        jwtUtil = new JwtUtil();
+        jwtUtil = new JwtUtil("test-secret-with-at-least-thirty-two-utf8-bytes", 3_600_000);
         userDetails = new User("goleador_admin", "clave123", new ArrayList<>());
     }
 
@@ -29,5 +29,12 @@ public class JwtUtilTest {
         assertNotNull(token);
         assertTrue(jwtUtil.validateToken(token, userDetails));
         assertEquals("goleador_admin", jwtUtil.extractUsername(token));
+    }
+
+    @Test
+    void rejectsShortSecretsAndNonPositiveExpiration() {
+        assertThrows(IllegalStateException.class, () -> new JwtUtil("short", 1));
+        assertThrows(IllegalStateException.class,
+                () -> new JwtUtil("test-secret-with-at-least-thirty-two-utf8-bytes", 0));
     }
 }

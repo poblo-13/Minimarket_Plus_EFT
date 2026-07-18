@@ -38,7 +38,7 @@ public class DetalleVentaController {
 
     @GetMapping
     @Operation(summary = "Listar detalles de venta")
-    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida"))
+    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida"))
     public CollectionModel<EntityModel<DetalleVentaResponse>> listarDetalleVentas() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         List<DetalleVenta> detalles = isCliente(authentication)
@@ -50,7 +50,7 @@ public class DetalleVentaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener un detalle de venta")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida"),
+    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida"),
             @ApiResponse(responseCode = "404", description = "Detalle de venta no encontrado"),
             @ApiResponse(responseCode = "403", description = "Un cliente solo puede consultar sus propios detalles")})
     public ResponseEntity<EntityModel<DetalleVentaResponse>> obtenerDetalleVentaPorId(@PathVariable Long id) {

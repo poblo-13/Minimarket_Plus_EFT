@@ -43,7 +43,7 @@ public class VentaController {
 
     @GetMapping
     @Operation(summary = "Listar ventas")
-    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))))
     public CollectionModel<EntityModel<VentaResponse>> listarVentas() {
@@ -57,7 +57,7 @@ public class VentaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una venta")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Venta no encontrada")})
@@ -77,7 +77,7 @@ public class VentaController {
              @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol CAJERO o ADMIN; error RFC 9457.", content = @Content(

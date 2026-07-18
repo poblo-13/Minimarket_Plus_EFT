@@ -9,41 +9,41 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.seed.enabled=true")
 @ActiveProfiles("dev")
 @AutoConfigureMockMvc
 class S8ApiContractIntegrationTest {
     @Autowired MockMvc mockMvc;
 
     @Test
-    void unauthenticatedRequestIsRfc9457WithBasicChallenge() throws Exception {
+    void unauthenticatedRequestIsRfc9457WithBearerChallenge() throws Exception {
         mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string("WWW-Authenticate", "Basic realm=\"minimarket\""))
+                .andExpect(header().string("WWW-Authenticate", "Bearer realm=\"minimarket\""))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
     void validationMalformedAndInvalidIdUseProblemDetail() throws Exception {
-        mockMvc.perform(post("/api/categorias").with(httpBasic("admin", "admin123"))
+        mockMvc.perform(post("/api/categorias").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.path").value("/api/categorias"))
                 .andExpect(jsonPath("$.errors[0].field").value("nombre"));
-        mockMvc.perform(post("/api/categorias").with(httpBasic("admin", "admin123"))
+        mockMvc.perform(post("/api/categorias").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("MALFORMED_JSON"))
                 .andExpect(jsonPath("$.path").value("/api/categorias"));
-        mockMvc.perform(get("/api/productos/0").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/productos/0").with(adminBearer()))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.path").value("/api/productos/0"));
     }
@@ -51,7 +51,7 @@ class S8ApiContractIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
     void categoryValidationRejectsBlankAndOverlongNames(String nombre) throws Exception {
-        mockMvc.perform(post("/api/categorias").with(httpBasic("admin", "admin123"))
+        mockMvc.perform(post("/api/categorias").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"" + nombre + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
@@ -61,7 +61,7 @@ class S8ApiContractIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1", "not-a-number"})
     void productIdentifiersRejectNonPositiveAndMalformedValues(String id) throws Exception {
-        mockMvc.perform(get("/api/productos/" + id).with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/productos/" + id).with(adminBearer()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.path").value("/api/productos/" + id));
     }
@@ -69,12 +69,12 @@ class S8ApiContractIntegrationTest {
     @Test
     void h2FlowCreatesCategoryAndHalProductWithLocation() throws Exception {
         String category = "S8-" + System.nanoTime();
-        String categoryBody = mockMvc.perform(post("/api/categorias").with(httpBasic("admin", "admin123"))
+        String categoryBody = mockMvc.perform(post("/api/categorias").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"" + category + "\"}"))
                 .andExpect(status().isCreated()).andExpect(header().exists("Location"))
                 .andReturn().getResponse().getContentAsString();
         long id = ((Number) com.jayway.jsonpath.JsonPath.read(categoryBody, "$.id")).longValue();
-        mockMvc.perform(post("/api/productos").with(httpBasic("admin", "admin123"))
+        mockMvc.perform(post("/api/productos").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"S8 producto\",\"precio\":1.0,\"stock\":0,\"categoriaId\":" + id + "}"))
                 .andExpect(status().isCreated()).andExpect(header().exists("Location"))
                 .andExpect(content().contentTypeCompatibleWith("application/hal+json"))
@@ -84,11 +84,11 @@ class S8ApiContractIntegrationTest {
     @Test
     void productPriceUsesNumericPrecisionWithinDoubleTolerance() throws Exception {
         String category = "S8-precision-" + System.nanoTime();
-        String categoryBody = mockMvc.perform(post("/api/categorias").with(httpBasic("admin", "admin123"))
+        String categoryBody = mockMvc.perform(post("/api/categorias").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"" + category + "\"}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long categoryId = ((Number) com.jayway.jsonpath.JsonPath.read(categoryBody, "$.id")).longValue();
-        String productBody = mockMvc.perform(post("/api/productos").with(httpBasic("admin", "admin123"))
+        String productBody = mockMvc.perform(post("/api/productos").with(adminBearer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nombre\":\"Precio preciso\",\"precio\":10.10,\"stock\":0,\"categoriaId\":" + categoryId + "}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
@@ -123,5 +123,18 @@ class S8ApiContractIntegrationTest {
                         .value("bearer"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.bearerFormat")
                         .value("JWT"));
+    }
+
+    private RequestPostProcessor adminBearer() throws Exception {
+        String body = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String token = com.jayway.jsonpath.JsonPath.read(body, "$.token");
+        return request -> {
+            request.addHeader("Authorization", "Bearer " + token);
+            return request;
+        };
     }
 }

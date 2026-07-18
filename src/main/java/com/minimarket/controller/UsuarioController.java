@@ -62,10 +62,10 @@ public class UsuarioController {
     }
 
     @GetMapping
-    @Operation(summary = "List users", description = "Requires HTTP Basic authentication.")
+    @Operation(summary = "List users", description = "Requires Bearer JWT authentication.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "HAL user collection"),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
+            @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class)))
     })
     public CollectionModel<EntityModel<UsuarioResponse>> listarUsuarios() {
@@ -77,12 +77,12 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a user", description = "Requires HTTP Basic authentication.")
+    @Operation(summary = "Get a user", description = "Requires Bearer JWT authentication.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "HAL user resource"),
             @ApiResponse(responseCode = "400", description = "The identifier must be positive",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
+            @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class)))
@@ -95,12 +95,12 @@ public class UsuarioController {
 
     @PostMapping
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Create a user", description = "Requires HTTP Basic authentication. Password is stored as a hash.")
+    @Operation(summary = "Create a user", description = "Requires Bearer JWT authentication. Password is stored as a hash.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "User created; Location identifies the new resource"),
             @ApiResponse(responseCode = "400", description = "Invalid request or an unknown role identifier",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
+            @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "403", description = "ADMIN role is required; RFC 9457 error",
                     content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -123,12 +123,12 @@ public class UsuarioController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Update a user", description = "Requires HTTP Basic authentication. Omitted password and role identifiers retain their current values.")
+    @Operation(summary = "Update a user", description = "Requires Bearer JWT authentication. Omitted password and role identifiers retain their current values.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Updated HAL user resource"),
             @ApiResponse(responseCode = "400", description = "Invalid request or an unknown role identifier",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
+            @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "403", description = "ADMIN role is required; RFC 9457 error",
                     content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -159,12 +159,12 @@ public class UsuarioController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('" + SecurityRoles.ADMIN + "')")
-    @Operation(summary = "Delete a user", description = "Requires HTTP Basic authentication.")
+    @Operation(summary = "Delete a user", description = "Requires Bearer JWT authentication.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "User deleted"),
             @ApiResponse(responseCode = "400", description = "The identifier must be positive",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid Basic credentials",
+            @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer JWT token",
                     content = @Content(schema = @Schema(implementation = ApiProblem.class))),
             @ApiResponse(responseCode = "403", description = "ADMIN role is required; RFC 9457 error",
                     content = @Content(mediaType = org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE,

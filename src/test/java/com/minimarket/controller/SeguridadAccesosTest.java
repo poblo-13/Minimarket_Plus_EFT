@@ -87,7 +87,7 @@ public class SeguridadAccesosTest {
     public void testSeguridad_SinCredencialesGetProductos_DebeDar401() throws Exception {
         mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string("WWW-Authenticate", "Basic realm=\"minimarket\""))
+                .andExpect(header().string("WWW-Authenticate", "Bearer realm=\"minimarket\""))
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.path").value("/api/productos"));

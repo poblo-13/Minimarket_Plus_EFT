@@ -36,7 +36,7 @@ public class CategoriaController {
 
     @GetMapping
     @Operation(summary = "Listar categorías")
-    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+    @ApiResponses(@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))))
     public CollectionModel<EntityModel<CategoriaResponse>> listarCategorias() {
@@ -46,7 +46,7 @@ public class CategoriaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una categoría")
-    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.",
+    @ApiResponses({@ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Categoría no encontrada")})
@@ -61,7 +61,7 @@ public class CategoriaController {
              @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
@@ -81,7 +81,7 @@ public class CategoriaController {
              @ApiResponse(responseCode = "400", description = "Solicitud inválida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(
@@ -98,7 +98,7 @@ public class CategoriaController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar una categoría")
     @ApiResponses({@ApiResponse(responseCode = "204", description = "Categoría eliminada"),
-             @ApiResponse(responseCode = "401", description = "Autenticación Basic requerida; error RFC 9457.", content = @Content(
+             @ApiResponse(responseCode = "401", description = "Autenticación Bearer JWT requerida; error RFC 9457.", content = @Content(
                      mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                      schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
              @ApiResponse(responseCode = "403", description = "Se requiere rol ADMIN; error RFC 9457.", content = @Content(

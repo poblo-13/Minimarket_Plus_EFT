@@ -48,7 +48,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public/**").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/usuarios/**").hasRole(SecurityRoles.ADMIN)
                         .requestMatchers("/api/inventario/**").hasRole(SecurityRoles.ADMIN)
@@ -69,7 +69,7 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(problemAuthenticationEntryPoint)
                         .accessDeniedHandler(problemAccessDeniedHandler))
-                .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(problemAuthenticationEntryPoint))
+                .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.disable())
                 .addFilterBefore(
