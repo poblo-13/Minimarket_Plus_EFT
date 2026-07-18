@@ -1,15 +1,17 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.Usuario;
+import com.minimarket.entity.Rol;
+import com.minimarket.repository.RolRepository;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.security.SecurityRoles;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
@@ -19,14 +21,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "app.seed.enabled=true")
-@ActiveProfiles("dev")
+@SpringBootTest(properties = "app.seed.enabled=false")
 @AutoConfigureMockMvc
 class AutenticacionUsuarioTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private RolRepository rolRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void aseguraCuentaAdminDePrueba() {
+        Rol admin = rolRepository.findByNombre(SecurityRoles.ADMIN)
+                .orElseGet(() -> rolRepository.save(new Rol(SecurityRoles.ADMIN)));
+        rolRepository.findByNombre(SecurityRoles.CLIENTE)
+                .orElseGet(() -> rolRepository.save(new Rol(SecurityRoles.CLIENTE)));
+        Usuario usuario = usuarioRepository.findByUsername("admin").orElseGet(Usuario::new);
+        usuario.setUsername("admin");
+        usuario.setPassword(passwordEncoder.encode("admin123"));
+        usuario.setRoles(java.util.Set.of(admin));
+        usuarioRepository.saveAndFlush(usuario);
+    }
 
     @Test
     void loginRealPermiteAccederConBearer() throws Exception {

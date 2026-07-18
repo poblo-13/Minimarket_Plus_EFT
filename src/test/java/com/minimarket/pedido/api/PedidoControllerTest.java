@@ -5,6 +5,7 @@ import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
 import com.minimarket.pedido.service.PedidoService;
+import com.minimarket.pedido.repository.PedidoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
@@ -36,11 +37,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PedidoControllerTest {
     private PedidoService pedidoService;
+    private PedidoRepository pedidoRepository;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         pedidoService = mock(PedidoService.class);
+        pedidoRepository = mock(PedidoRepository.class);
         HandlerMethodArgumentResolver authenticationResolver = new HandlerMethodArgumentResolver() {
             @Override public boolean supportsParameter(MethodParameter parameter) {
                 return Authentication.class.isAssignableFrom(parameter.getParameterType());
@@ -50,7 +53,7 @@ class PedidoControllerTest {
                 return SecurityContextHolder.getContext().getAuthentication();
             }
         };
-        mockMvc = MockMvcBuilders.standaloneSetup(new PedidoController(pedidoService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new PedidoController(pedidoService, pedidoRepository))
                 .setControllerAdvice(new ApiExceptionHandler(), new PedidoApiExceptionHandler())
                 .setCustomArgumentResolvers(authenticationResolver)
                 .build();

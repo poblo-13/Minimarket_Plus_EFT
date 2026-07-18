@@ -242,5 +242,5 @@ public class SeguridadAccesosTest {
 
     private String productoRequestJson() { return "{\"nombre\":\"Galletas\",\"precio\":990.0,\"stock\":20,\"categoriaId\":1}"; }
     private String inventarioRequestJson() { return "{\"productoId\":1,\"cantidad\":10,\"tipoMovimiento\":\"Entrada\",\"fechaMovimiento\":\"2025-01-01T10:00:00\"}"; }
-    private String ventaRequestJson() { return "{\"usuarioId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"; }
+    private String ventaRequestJson() { return "{\"usuarioId\":1,\"sucursalId\":1,\"lineas\":[{\"productoId\":1,\"cantidad\":2}]}"; }
 }

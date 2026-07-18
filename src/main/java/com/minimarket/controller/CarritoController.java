@@ -62,9 +62,7 @@ public class CarritoController {
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public CollectionModel<EntityModel<CarritoResponse>> listarCarrito() {
-        List<Carrito> carritos = currentActor.isStaff()
-                ? carritoRepository.findAll()
-                : carritoRepository.findByUsuarioId(currentActor.userId());
+        List<Carrito> carritos = carritoRepository.findByUsuarioId(currentActor.userId());
         List<EntityModel<CarritoResponse>> items = carritos.stream()
                 .map(this::toModel)
                 .toList();
@@ -95,8 +93,7 @@ public class CarritoController {
     public ResponseEntity<Void> eliminarProductoDelCarrito(@PathVariable @Positive Long id) { carritoService.deleteById(requireVisibleCartItem(id).getId()); return ResponseEntity.noContent().build(); }
 
     private Carrito requireVisibleCartItem(Long id) {
-        return (currentActor.isStaff() ? carritoRepository.findById(id)
-                : carritoRepository.findByIdAndUsuarioId(id, currentActor.userId()))
+        return carritoRepository.findByIdAndUsuarioId(id, currentActor.userId())
                 .orElseThrow(() -> new NoSuchElementException("Carrito no encontrado"));
     }
 
