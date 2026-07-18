@@ -86,6 +86,26 @@ class PedidoServiceImplTest {
         assertEquals(EstadoPedido.CANCELADO, pedidoService.cancelar(21L, 7L).getEstado());
     }
 
+    @Test
+    void listaOperativaAplicaFiltrosDeEstadoYSucursal() {
+        Pedido pedido = pedido(30L, EstadoPedido.CONFIRMADO);
+        when(pedidoRepository.findByEstadoAndSucursalId(EstadoPedido.CONFIRMADO, 4L))
+                .thenReturn(List.of(pedido));
+
+        List<Pedido> resultado = pedidoService.listarOperativos(EstadoPedido.CONFIRMADO, 4L);
+
+        assertEquals(List.of(pedido), resultado);
+        verify(pedidoRepository).findByEstadoAndSucursalId(EstadoPedido.CONFIRMADO, 4L);
+    }
+
+    @Test
+    void listaOperativaPuedeFiltrarPorSucursalYDevolverVacia() {
+        when(pedidoRepository.findBySucursalId(8L)).thenReturn(List.of());
+
+        assertEquals(List.of(), pedidoService.listarOperativos(null, 8L));
+        verify(pedidoRepository).findBySucursalId(8L);
+    }
+
     private Usuario cliente(Long id) {
         Usuario usuario = new Usuario();
         usuario.setId(id);

@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .hasRole(SecurityRoles.CLIENTE)
                         .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**")
                         .hasRole(SecurityRoles.CLIENTE)
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos")
+                        .hasAnyRole(SecurityRoles.CAJERO, SecurityRoles.ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/**")
                         .hasAnyRole(SecurityRoles.CLIENTE, SecurityRoles.CAJERO, SecurityRoles.ADMIN)
                         .requestMatchers("/api/carrito/**").hasRole(SecurityRoles.CLIENTE)

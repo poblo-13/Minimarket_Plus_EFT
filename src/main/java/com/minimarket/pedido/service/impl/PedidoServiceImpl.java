@@ -122,6 +122,23 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Pedido> listarOperativos(EstadoPedido estado, Long sucursalId) {
+        List<Pedido> pedidos;
+        if (estado != null && sucursalId != null) {
+            pedidos = pedidoRepository.findByEstadoAndSucursalId(estado, sucursalId);
+        } else if (estado != null) {
+            pedidos = pedidoRepository.findByEstado(estado);
+        } else if (sucursalId != null) {
+            pedidos = pedidoRepository.findBySucursalId(sucursalId);
+        } else {
+            pedidos = pedidoRepository.findAll();
+        }
+        pedidos.forEach(this::inicializarDetalles);
+        return pedidos;
+    }
+
+    @Override
     @Transactional
     public Pedido cambiarEstado(Long pedidoId, EstadoPedido nuevoEstado) {
         if (nuevoEstado == null) {
