@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /** Servicio transaccional del stock por sucursal; nunca actualiza el stock global legado de Producto. */
 @Service
@@ -33,6 +34,15 @@ public class StockSucursalServiceImpl implements StockSucursalService {
     public StockSucursal consultarStock(Long sucursalId, Long productoId) {
         verificarSucursalYProducto(sucursalId, productoId);
         return buscarStock(sucursalId, productoId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StockSucursal> listarStockPorSucursal(Long sucursalId) {
+        if (!sucursalRepository.existsById(sucursalId)) {
+            throw new EntityNotFoundException("Sucursal no encontrada: " + sucursalId);
+        }
+        return stockSucursalRepository.findBySucursalId(sucursalId);
     }
 
     @Override
