@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -46,6 +48,14 @@ public class SucursalController {
     public CollectionModel<EntityModel<SucursalResponse>> listarSucursales() {
         return CollectionModel.of(sucursalRepository.findAll().stream().map(sucursalAssembler::toModel).toList(),
                 linkTo(methodOn(SucursalController.class).listarSucursales()).withSelfRel());
+    }
+
+    @GetMapping("/{sucursalId}/stock")
+    public List<DisponibilidadResponse> listarStockPorSucursal(@PathVariable @Positive Long sucursalId) {
+        return stockSucursalService.listarStockPorSucursal(sucursalId).stream()
+                .map(stock -> new DisponibilidadResponse(stock.getSucursal().getId(), stock.getProducto().getId(),
+                        stock.getDisponible(), stock.getStockMinimo()))
+                .toList();
     }
 
     @GetMapping("/{sucursalId}/productos/{productoId}/disponibilidad")
