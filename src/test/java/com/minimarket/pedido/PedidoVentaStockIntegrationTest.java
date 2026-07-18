@@ -3,14 +3,14 @@ package com.minimarket.pedido;
 import com.minimarket.entity.Categoria;
 import com.minimarket.entity.Producto;
 import com.minimarket.entity.Usuario;
-import com.minimarket.pedido.api.CrearPedidoRequest;
-import com.minimarket.pedido.api.LineaPedidoRequest;
+import com.minimarket.pedido.api.CheckoutRequest;
 import com.minimarket.pedido.domain.EstadoPedido;
 import com.minimarket.pedido.domain.Pedido;
 import com.minimarket.pedido.domain.TipoEntrega;
 import com.minimarket.pedido.repository.PedidoRepository;
 import com.minimarket.pedido.service.PedidoService;
 import com.minimarket.repository.CategoriaRepository;
+import com.minimarket.repository.CarritoRepository;
 import com.minimarket.repository.DetalleVentaRepository;
 import com.minimarket.repository.ProductoRepository;
 import com.minimarket.repository.UsuarioRepository;
@@ -44,6 +44,7 @@ class PedidoVentaStockIntegrationTest {
     @Autowired ProductoRepository productoRepository;
     @Autowired SucursalRepository sucursalRepository;
     @Autowired StockSucursalRepository stockSucursalRepository;
+    @Autowired CarritoRepository carritoRepository;
 
     @Test
     void confirmaConSnapshotsDelPedidoCreaUnaVentaYDescuentaStockUnaVez() {
@@ -65,8 +66,11 @@ class PedidoVentaStockIntegrationTest {
 
     @Test
     void stockInsuficienteRevierteVentaStockYEstadoPendiente() {
-        Fixture fixture = fixture(1, 25D);
+        Fixture fixture = fixture(2, 25D);
         Pedido pedido = crearPedido(fixture, 2);
+        StockSucursal agotadoAntesDeConfirmar = stockSucursalRepository.findById(fixture.stock().getId()).orElseThrow();
+        agotadoAntesDeConfirmar.setDisponible(1);
+        stockSucursalRepository.saveAndFlush(agotadoAntesDeConfirmar);
         long ventasAntes = ventaRepository.count();
 
         assertThrows(StockSucursalInsuficienteException.class,
@@ -112,8 +116,13 @@ class PedidoVentaStockIntegrationTest {
     }
 
     private Pedido crearPedido(Fixture fixture, int cantidad) {
-        return pedidoService.crear(fixture.usuario().getId(), new CrearPedidoRequest(TipoEntrega.RETIRO_TIENDA,
-                fixture.sucursal().getId(), null, List.of(new LineaPedidoRequest(fixture.producto().getId(), cantidad))));
+        com.minimarket.entity.Carrito carrito = new com.minimarket.entity.Carrito();
+        carrito.setUsuario(fixture.usuario());
+        carrito.setProducto(fixture.producto());
+        carrito.setCantidad(cantidad);
+        carritoRepository.saveAndFlush(carrito);
+        return pedidoService.checkout(fixture.usuario().getUsername(),
+                new CheckoutRequest(TipoEntrega.RETIRO_TIENDA, fixture.sucursal().getId(), null));
     }
 
     private Fixture fixture(int disponible, double precio) {

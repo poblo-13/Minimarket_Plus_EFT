@@ -1,117 +1,129 @@
 package com.minimarket.service.impl;
 
 import com.minimarket.entity.Carrito;
+import com.minimarket.entity.Producto;
+import com.minimarket.entity.Usuario;
+import com.minimarket.promocion.PromocionService;
 import com.minimarket.repository.CarritoRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.minimarket.repository.ProductoRepository;
+import com.minimarket.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class CarritoServiceImplTest {
+class CarritoServiceImplTest {
+    @Mock CarritoRepository carritoRepository;
+    @Mock UsuarioRepository usuarioRepository;
+    @Mock ProductoRepository productoRepository;
+    @Mock PromocionService promocionService;
+    @InjectMocks CarritoServiceImpl carritoService;
 
-    @Mock
-    private CarritoRepository carritoRepository;
+    @Test
+    void upsertUsaUsuarioAutenticadoYCantidadAbsoluta() {
+        Usuario usuario = new Usuario(); usuario.setId(5L);
+        Producto producto = new Producto(); producto.setId(9L);
+        Carrito existente = new Carrito(); existente.setUsuario(usuario); existente.setProducto(producto); existente.setCantidad(1);
+        when(usuarioRepository.findByUsernameForUpdate("cliente")).thenReturn(Optional.of(usuario));
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        when(carritoRepository.findByUsuarioIdAndProductoId(5L, 9L)).thenReturn(Optional.of(existente));
 
-    @InjectMocks
-    private CarritoServiceImpl carritoService;
+        carritoService.upsert("cliente", 9L, 4);
 
-    private Carrito carritoMock;
-
-    @BeforeEach
-    public void setUp() {
-        // Preparamos nuestro objeto simulado para las jugadas
-        carritoMock = new Carrito();
-        carritoMock.setId(10L);
-        carritoMock.setCantidad(2);
+        assertEquals(4, existente.getCantidad());
+        verify(carritoRepository).save(existente);
     }
 
     @Test
-    public void testFindAll() {
-        // Act
-        when(carritoRepository.findAll()).thenReturn(Arrays.asList(carritoMock));
+    void eliminarEsIdempotenteYSeLimitaAlUsuarioAutenticado() {
+        Usuario usuario = new Usuario(); usuario.setId(5L);
+        when(usuarioRepository.findByUsernameForUpdate("cliente")).thenReturn(Optional.of(usuario));
 
-        // Ejecutamos
-        List<Carrito> resultado = carritoService.findAll();
+        carritoService.eliminar("cliente", 9L);
 
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        assertEquals(10L, resultado.get(0).getId());
-        verify(carritoRepository, times(1)).findAll();
+        verify(carritoRepository).deleteByUsuarioIdAndProductoId(5L, 9L);
     }
 
     @Test
-    public void testFindById_Encontrado() {
-        // Act
-        when(carritoRepository.findById(10L)).thenReturn(Optional.of(carritoMock));
+    void obtenerCalculaPrecioPromocionalSubtotalYTotalEstimado() {
+        Usuario usuario = usuario(5L);
+        Producto pan = producto(9L, "Pan");
+        Producto leche = producto(10L, "Leche");
+        Carrito primerItem = carrito(usuario, pan, 2);
+        Carrito segundoItem = carrito(usuario, leche, 3);
+        when(usuarioRepository.findByUsername("cliente")).thenReturn(Optional.of(usuario));
+        when(carritoRepository.findByUsuarioId(5L)).thenReturn(List.of(primerItem, segundoItem));
+        when(promocionService.calcularPrecioEfectivo(9L, LocalDate.now())).thenReturn(new BigDecimal("1.25"));
+        when(promocionService.calcularPrecioEfectivo(10L, LocalDate.now())).thenReturn(new BigDecimal("2.10"));
 
-        // Ejecutamos
-        Carrito resultado = carritoService.findById(10L);
+        var respuesta = carritoService.obtener("cliente");
 
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(10L, resultado.getId());
-        verify(carritoRepository, times(1)).findById(10L);
+        assertEquals(new BigDecimal("8.80"), respuesta.total());
+        assertEquals(new BigDecimal("2.50"), respuesta.items().getFirst().subtotal());
+        assertEquals(new BigDecimal("6.30"), respuesta.items().getLast().subtotal());
+        assertEquals(9L, respuesta.items().getFirst().productoId());
     }
 
     @Test
-    public void testFindById_NoEncontrado() {
-        // Act
-        when(carritoRepository.findById(99L)).thenReturn(Optional.empty());
+    void obtenerCarritoVacioDevuelveTotalCero() {
+        Usuario usuario = usuario(5L);
+        when(usuarioRepository.findByUsername("cliente")).thenReturn(Optional.of(usuario));
+        when(carritoRepository.findByUsuarioId(5L)).thenReturn(List.of());
 
-        // Ejecutamos
-        Carrito resultado = carritoService.findById(99L);
+        var respuesta = carritoService.obtener("cliente");
 
-        // Assert
-        assertNull(resultado);
-        verify(carritoRepository, times(1)).findById(99L);
+        assertEquals(List.of(), respuesta.items());
+        assertEquals(new BigDecimal("0.00"), respuesta.total());
     }
 
     @Test
-    public void testSave() {
-        // Act
-        when(carritoRepository.save(any(Carrito.class))).thenReturn(carritoMock);
+    void obtenerYMutarRechazanUsuarioOProductoInexistente() {
+        when(usuarioRepository.findByUsername("desconocido")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByUsernameForUpdate("cliente")).thenReturn(Optional.of(usuario(5L)));
+        when(productoRepository.findById(9L)).thenReturn(Optional.empty());
 
-        // Ejecutamos
-        Carrito resultado = carritoService.save(carritoMock);
-
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(10L, resultado.getId());
-        assertEquals(2, resultado.getCantidad());
-        verify(carritoRepository, times(1)).save(carritoMock);
+        assertThrows(NoSuchElementException.class, () -> carritoService.obtener("desconocido"));
+        assertThrows(NoSuchElementException.class, () -> carritoService.upsert("cliente", 9L, 1));
     }
 
     @Test
-    public void testDeleteById() {
-        // Act
-        carritoService.deleteById(10L);
-
-        // Assert
-        verify(carritoRepository, times(1)).deleteById(10L);
+    void upsertRechazaCantidadInvalidaYUsuarioNoAutenticado() {
+        assertThrows(IllegalArgumentException.class, () -> carritoService.upsert("cliente", 9L, 0));
+        when(usuarioRepository.findByUsernameForUpdate("desconocido")).thenReturn(Optional.empty());
+        assertThrows(NoSuchElementException.class, () -> carritoService.upsert("desconocido", 9L, 1));
     }
 
     @Test
-    public void testFindByUsuarioId() {
-        // Act
-        when(carritoRepository.findByUsuarioId(5L)).thenReturn(Arrays.asList(carritoMock));
+    void eliminarRechazaUsuarioNoAutenticado() {
+        when(usuarioRepository.findByUsernameForUpdate("desconocido")).thenReturn(Optional.empty());
 
-        // Ejecutamos
-        List<Carrito> resultado = carritoService.findByUsuarioId(5L);
+        assertThrows(NoSuchElementException.class, () -> carritoService.eliminar("desconocido", 9L));
+        verify(carritoRepository, never()).deleteByUsuarioIdAndProductoId(anyLong(), anyLong());
+    }
 
-        // Assert
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        verify(carritoRepository, times(1)).findByUsuarioId(5L);
+    private Usuario usuario(Long id) {
+        Usuario usuario = new Usuario(); usuario.setId(id); return usuario;
+    }
+
+    private Producto producto(Long id, String nombre) {
+        Producto producto = new Producto(); producto.setId(id); producto.setNombre(nombre); return producto;
+    }
+
+    private Carrito carrito(Usuario usuario, Producto producto, int cantidad) {
+        Carrito carrito = new Carrito();
+        carrito.setUsuario(usuario); carrito.setProducto(producto); carrito.setCantidad(cantidad);
+        return carrito;
     }
 }

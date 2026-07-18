@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -49,19 +48,6 @@ public class PedidoController {
     public PedidoController(PedidoService pedidoService, PedidoRepository pedidoRepository) {
         this.pedidoService = pedidoService;
         this.pedidoRepository = pedidoRepository;
-    }
-
-    @PostMapping
-    @Operation(summary = "Crear pedido", description = "El cliente se obtiene del JWT; estado, precios y fechas los calcula el servidor.", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CrearPedidoRequest.class))))
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Pedido creado", content = @Content(mediaType = "application/hal+json", schema = @Schema(implementation = PedidoResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Producto o cliente no encontrado", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "Conflicto de estado", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
-    public ResponseEntity<EntityModel<PedidoResponse>> crear(@Valid @RequestBody CrearPedidoRequest request,
-                                                               Authentication authentication) {
-        EntityModel<PedidoResponse> resource = resource(pedidoService.crear(authentication.getName(), request), authentication);
-        return ResponseEntity.created(resource.getRequiredLink("self").toUri()).body(resource);
     }
 
     @GetMapping
@@ -99,13 +85,14 @@ public class PedidoController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Cancelar un pedido pendiente propio")
+    @Operation(summary = "Cancelar un pedido pendiente propio o por personal")
     @ApiResponses({@ApiResponse(responseCode = "204", description = "Pedido cancelado"),
             @ApiResponse(responseCode = "400", description = "Identificador inválido", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Pedido inexistente o ajeno", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
             @ApiResponse(responseCode = "409", description = "El pedido no está pendiente", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))})
     public ResponseEntity<Void> cancelar(@PathVariable @Positive Long id, Authentication authentication) {
-        pedidoService.cancelar(id, authentication.getName());
+        if (isStaff(authentication)) pedidoService.cancelarOperativo(id);
+        else pedidoService.cancelar(id, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 
@@ -118,9 +105,7 @@ public class PedidoController {
     public EntityModel<PedidoResponse> cambiarEstado(@PathVariable @Positive Long id,
                                                        @Valid @RequestBody CambiarEstadoPedidoRequest request,
                                                        Authentication authentication) {
-        if (request.estado() == EstadoPedido.CANCELADO) {
-            throw new IllegalArgumentException("CANCELADO solo puede realizarse por el dueño del pedido");
-        }
+        if (request.estado() == EstadoPedido.CANCELADO) return resource(pedidoService.cancelarOperativo(id), authentication);
         return resource(pedidoService.cambiarEstado(id, request.estado()), authentication);
     }
 

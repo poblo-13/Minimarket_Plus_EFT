@@ -11,9 +11,10 @@ import java.util.List;
 
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByUsuarioId(Long usuarioId);
-    List<Pedido> findByEstado(EstadoPedido estado);
-    List<Pedido> findBySucursalId(Long sucursalId);
-    List<Pedido> findByEstadoAndSucursalId(EstadoPedido estado, Long sucursalId);
+    List<Pedido> findByEstadoOrderByCreadoEnAsc(EstadoPedido estado);
+    List<Pedido> findBySucursalIdOrderByCreadoEnAsc(Long sucursalId);
+    List<Pedido> findByEstadoAndSucursalIdOrderByCreadoEnAsc(EstadoPedido estado, Long sucursalId);
+    List<Pedido> findByEstadoInOrderByCreadoEnAsc(List<EstadoPedido> estados);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select distinct pedido from Pedido pedido left join fetch pedido.detalles where pedido.id = :pedidoId")
