@@ -1,0 +1,4 @@
+package com.minimarket.abastecimiento.api.dto;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+public record ConfigurarProveedorProductoRequest(@NotNull @Positive Long proveedorId) { }
