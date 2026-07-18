@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class PedidoServiceImpl implements PedidoService {
@@ -40,7 +42,7 @@ public class PedidoServiceImpl implements PedidoService {
         }
         validarRequest(request);
         Usuario cliente = usuarioRepository.findById(clienteId)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
         return crearParaCliente(cliente, request);
     }
 
@@ -52,7 +54,7 @@ public class PedidoServiceImpl implements PedidoService {
         }
         validarRequest(request);
         Usuario cliente = usuarioRepository.findByUsername(usernameCliente)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
         return crearParaCliente(cliente, request);
     }
 
@@ -61,13 +63,46 @@ public class PedidoServiceImpl implements PedidoService {
     public Pedido cancelar(Long pedidoId, Long clienteId) {
         Pedido pedido = obtenerPedido(pedidoId);
         if (!Objects.equals(pedido.getUsuario().getId(), clienteId)) {
-            throw new IllegalArgumentException("El pedido no pertenece al cliente autenticado");
+            throw new NoSuchElementException("Pedido no encontrado");
         }
         if (pedido.getEstado() != EstadoPedido.PENDIENTE) {
             throw new IllegalStateException("Solo se pueden cancelar pedidos pendientes");
         }
         pedido.setEstado(EstadoPedido.CANCELADO);
         return pedidoRepository.save(pedido);
+    }
+
+    @Override
+    @Transactional
+    public Pedido cancelar(Long pedidoId, String usernameCliente) {
+        Pedido pedido = obtenerParaCliente(pedidoId, usernameCliente);
+        if (pedido.getEstado() != EstadoPedido.PENDIENTE) {
+            throw new IllegalStateException("Solo se pueden cancelar pedidos pendientes");
+        }
+        pedido.setEstado(EstadoPedido.CANCELADO);
+        return pedidoRepository.save(pedido);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Pedido obtenerParaCliente(Long pedidoId, String usernameCliente) {
+        Pedido pedido = obtenerPedido(pedidoId);
+        if (!pedido.getUsuario().getUsername().equals(usernameCliente)) {
+            // Deliberadamente indistinguible de un pedido inexistente.
+            throw new NoSuchElementException("Pedido no encontrado");
+        }
+        inicializarDetalles(pedido);
+        return pedido;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Pedido> listarParaCliente(String usernameCliente) {
+        Usuario cliente = usuarioRepository.findByUsername(usernameCliente)
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
+        List<Pedido> pedidos = pedidoRepository.findByUsuarioId(cliente.getId());
+        pedidos.forEach(this::inicializarDetalles);
+        return pedidos;
     }
 
     @Override
@@ -95,7 +130,7 @@ public class PedidoServiceImpl implements PedidoService {
 
         for (LineaPedidoRequest linea : request.detalles()) {
             Producto producto = productoRepository.findById(linea.productoId())
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + linea.productoId()));
+                    .orElseThrow(() -> new NoSuchElementException("Producto no encontrado: " + linea.productoId()));
             if (producto.getPrecio() == null || producto.getNombre() == null || producto.getNombre().isBlank()) {
                 throw new IllegalStateException("El producto no tiene datos válidos para crear el pedido");
             }
@@ -131,7 +166,11 @@ public class PedidoServiceImpl implements PedidoService {
 
     private Pedido obtenerPedido(Long pedidoId) {
         return pedidoRepository.findById(pedidoId)
-                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado"));
+                .orElseThrow(() -> new NoSuchElementException("Pedido no encontrado"));
+    }
+
+    private void inicializarDetalles(Pedido pedido) {
+        pedido.getDetalles().size();
     }
 
     private boolean esTransicionValida(EstadoPedido actual, EstadoPedido nuevo) {
