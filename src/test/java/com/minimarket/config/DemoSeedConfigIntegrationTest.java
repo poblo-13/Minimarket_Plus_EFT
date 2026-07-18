@@ -27,9 +27,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {
         "app.seed.enabled=true",
-        "app.admin.password=seed-admin-test-password",
-        "app.cajero.password=seed-cajero-test-password",
-        "app.cliente.password=seed-cliente-test-password"
+        "DEMO_ADMIN_USERNAME=seed-admin-user",
+        "DEMO_ADMIN_PASSWORD=seed-admin-test-password",
+        "DEMO_CAJERO_USERNAME=seed-cajero-user",
+        "DEMO_CAJERO_PASSWORD=seed-cajero-test-password",
+        "DEMO_CLIENTE_USERNAME=seed-cliente-user",
+        "DEMO_CLIENTE_PASSWORD=seed-cliente-test-password"
 })
 class DemoSeedConfigIntegrationTest {
     private static final Set<String> CATEGORIAS = Set.of("Bebidas Demo", "Abarrotes Demo", "Snacks Demo");
@@ -57,7 +60,7 @@ class DemoSeedConfigIntegrationTest {
         assertEquals(antes, snapshot());
         assertEquals(3, rolRepository.count());
         assertEquals(3, usuariosDemo().size());
-        Usuario admin = usuarioRepository.findByUsername("admin_demo").orElseThrow();
+        Usuario admin = usuarioRepository.findByUsername("seed-admin-user").orElseThrow();
         assertTrue(passwordEncoder.matches("seed-admin-test-password", admin.getPassword()));
         assertTrue(admin.getRoles().stream().anyMatch(rol -> rol.getNombre().equals("ADMIN")));
         assertEquals(3, categoriaRepository.findAll().stream().filter(c -> CATEGORIAS.contains(c.getNombre())).count());
@@ -90,9 +93,9 @@ class DemoSeedConfigIntegrationTest {
 
     private Set<Usuario> usuariosDemo() {
         return Set.of(
-                usuarioRepository.findByUsername("admin_demo").orElseThrow(),
-                usuarioRepository.findByUsername("cajero_demo").orElseThrow(),
-                usuarioRepository.findByUsername("cliente_demo").orElseThrow());
+                usuarioRepository.findByUsername("seed-admin-user").orElseThrow(),
+                usuarioRepository.findByUsername("seed-cajero-user").orElseThrow(),
+                usuarioRepository.findByUsername("seed-cliente-user").orElseThrow());
     }
 
     private record SeedSnapshot(long usuarios, long categorias, long productos, long sucursales,

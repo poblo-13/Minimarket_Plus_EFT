@@ -35,8 +35,10 @@ class ConfigurationProfileTest {
         Properties development = load("application-dev.properties");
 
         assertEquals("true", development.getProperty("spring.h2.console.enabled"));
-        assertEquals("true", development.getProperty("app.seed.enabled"));
-        assertEquals("${APP_ADMIN_PASSWORD:local-admin-demo-2026}", development.getProperty("app.admin.password"));
+        assertEquals("${DEMO_SEED_ENABLED:false}", development.getProperty("app.seed.enabled"));
+        assertNull(development.getProperty("app.admin.password"));
+        assertFalse(Files.readString(Path.of("src", "main", "java", "com", "minimarket", "config", "DemoSeedConfig.java"))
+                .contains("local-admin-demo"));
         assertFalse(development.getProperty("spring.datasource.url").isBlank());
     }
 

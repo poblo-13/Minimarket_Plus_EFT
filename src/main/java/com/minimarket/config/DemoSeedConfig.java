@@ -39,16 +39,19 @@ public class DemoSeedConfig {
             StockSucursalRepository stockSucursalRepository,
             PasswordEncoder passwordEncoder,
             @Value("${app.seed.enabled:false}") boolean seedEnabled,
-            @Value("${app.admin.username}") String adminUsername,
-            @Value("${app.admin.password}") String adminPassword,
-            @Value("${app.cajero.username}") String cajeroUsername,
-            @Value("${app.cajero.password}") String cajeroPassword,
-            @Value("${app.cliente.username}") String clienteUsername,
-            @Value("${app.cliente.password}") String clientePassword) {
+            @Value("${DEMO_ADMIN_USERNAME:}") String adminUsername,
+            @Value("${DEMO_ADMIN_PASSWORD:}") String adminPassword,
+            @Value("${DEMO_CAJERO_USERNAME:}") String cajeroUsername,
+            @Value("${DEMO_CAJERO_PASSWORD:}") String cajeroPassword,
+            @Value("${DEMO_CLIENTE_USERNAME:}") String clienteUsername,
+            @Value("${DEMO_CLIENTE_PASSWORD:}") String clientePassword) {
         return args -> {
             if (!seedEnabled) {
                 return;
             }
+            validarCredenciales(adminUsername, adminPassword, "DEMO_ADMIN");
+            validarCredenciales(cajeroUsername, cajeroPassword, "DEMO_CAJERO");
+            validarCredenciales(clienteUsername, clientePassword, "DEMO_CLIENTE");
 
             Rol admin = obtenerOCrearRol(rolRepository, SecurityRoles.ADMIN);
             Rol cajero = obtenerOCrearRol(rolRepository, SecurityRoles.CAJERO);
@@ -88,7 +91,12 @@ public class DemoSeedConfig {
 
     private void crearUsuarioSiNoExiste(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
                                         String username, String password, Rol rol) {
-        if (usuarioRepository.findByUsername(username).isPresent()) {
+        Usuario existente = usuarioRepository.findByUsername(username).orElse(null);
+        if (existente != null) {
+            if (!passwordEncoder.matches(password, existente.getPassword())) {
+                existente.setPassword(passwordEncoder.encode(password));
+                usuarioRepository.save(existente);
+            }
             return;
         }
         Usuario usuario = new Usuario();
@@ -96,6 +104,13 @@ public class DemoSeedConfig {
         usuario.setPassword(passwordEncoder.encode(password));
         usuario.setRoles(Set.of(rol));
         usuarioRepository.save(usuario);
+    }
+
+    private void validarCredenciales(String username, String password, String prefijoVariable) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            throw new IllegalStateException("El seed demo requiere " + prefijoVariable
+                    + "_USERNAME y " + prefijoVariable + "_PASSWORD cuando app.seed.enabled=true");
+        }
     }
 
     private Categoria obtenerOCrearCategoria(CategoriaRepository categoriaRepository, String nombre) {
